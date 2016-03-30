@@ -1,12 +1,6 @@
 <%inherit file="/layouts/main.mako"/>
 <%!
-    import sickbeard
-    import os.path
-    import datetime
-    import re
     from sickbeard import providers
-    from sickbeard.common import SKIPPED, WANTED, UNAIRED, ARCHIVED, IGNORED, SNATCHED, SNATCHED_PROPER, SNATCHED_BEST, FAILED
-    from sickbeard.common import Quality, qualityPresets, qualityPresetStrings, statusStrings, Overview
     from sickrage.providers.GenericProvider import GenericProvider
 %>
 <%block name="content">
@@ -60,7 +54,7 @@
         <img src="${srRoot}/images/providers/missing.png" width="16" height="16" alt="missing provider" title="missing provider"/>
     % endif
     </td>
-    <td align="center"><input type="checkbox" class="removeCheck" id="remove-${hItem["release"]}" /></td>
+    <td align="center"><input type="checkbox" class="removeCheck" id="remove-${hItem["release"] | u}" /></td>
   </tr>
 % endfor
   </tbody>

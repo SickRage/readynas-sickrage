@@ -17,6 +17,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with SickRage. If not, see <http://www.gnu.org/licenses/>.
+# pylint: disable=too-many-lines
 
 import glob
 import fnmatch
@@ -47,7 +48,7 @@ import adba
 from sickbeard.helpers import verify_freespace
 
 
-class PostProcessor(object):
+class PostProcessor(object):  # pylint: disable=too-many-instance-attributes
     """
     A class which will process a media file according to the post processing settings in the config.
     """
@@ -148,7 +149,8 @@ class PostProcessor(object):
                       logger.DEBUG)
             return PostProcessor.DOESNT_EXIST
 
-    def list_associated_files(self, file_path, base_name_only=False, subtitles_only=False, subfolders=False):  # pylint: disable=unused-argument
+    def list_associated_files(self, file_path, base_name_only=False,  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+                              subtitles_only=False, subfolders=False):  # pylint: disable=unused-argument
         """
         For a given file path searches for files with the same name but different extension and returns their absolute paths
 
@@ -240,7 +242,7 @@ class PostProcessor(object):
             # Add the extensions that the user doesn't allow to the 'extensions_to_delete' list
             if sickbeard.MOVE_ASSOCIATED_FILES:
                 allowed_extensions = sickbeard.ALLOWED_EXTENSIONS.split(",")
-                if not associated_file_path[-3:] in allowed_extensions:
+                if not associated_file_path.rpartition('.')[2] in allowed_extensions:
                     if ek(os.path.isfile, associated_file_path):
                         extensions_to_delete.append(associated_file_path)
 
@@ -248,13 +250,13 @@ class PostProcessor(object):
                 file_path_list.append(associated_file_path)
 
         if file_path_list:
-            self._log(u"Found the following associated files for %s: %s" % (file_path, file_path_list), logger.DEBUG)
+            self._log(u"Found the following associated files for {0}: {1}".format(file_path, file_path_list), logger.DEBUG)
             if extensions_to_delete:
                 # Rebuild the 'file_path_list' list only with the extensions the user allows
                 file_path_list = [associated_file for associated_file in file_path_list if associated_file not in extensions_to_delete]
                 self._delete(extensions_to_delete)
         else:
-            self._log(u"No associated files for %s were found during this pass" % file_path, logger.DEBUG)
+            self._log(u"No associated files for {0} were found during this pass".format(file_path), logger.DEBUG)
 
         return file_path_list
 
@@ -302,8 +304,9 @@ class PostProcessor(object):
                 # do the library update for synoindex
                 notifiers.synoindex_notifier.deleteFile(cur_file)
 
-    def _combined_file_operation(self, file_path, new_path, new_base_name, associated_files=False, action=None,
-                                 subtitles=False):
+    def _combined_file_operation(self, file_path, new_path,  # pylint: disable=too-many-arguments, too-many-locals, too-many-branches
+                                 new_base_name, associated_files=False,
+                                 action=None, subtitles=False):
         """
         Performs a generic operation (move or copy) on a file. Can rename the file as well as change its location,
         and optionally move associated files too.
@@ -378,7 +381,7 @@ class PostProcessor(object):
 
             action(cur_file_path, new_file_path)
 
-    def _move(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):
+    def _move(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):  # pylint: disable=too-many-arguments
         """
         Move file and set proper permissions
 
@@ -401,7 +404,7 @@ class PostProcessor(object):
         self._combined_file_operation(file_path, new_path, new_base_name, associated_files, action=_int_move,
                                       subtitles=subtitles)
 
-    def _copy(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):
+    def _copy(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):  # pylint: disable=too-many-arguments
         """
         Copy file and set proper permissions
 
@@ -418,13 +421,13 @@ class PostProcessor(object):
                 helpers.copyFile(cur_file_path, new_file_path)
                 helpers.chmodAsParent(new_file_path)
             except (IOError, OSError) as e:
-                logger.log(u"Unable to copy file " + cur_file_path + " to " + new_file_path + ": " + ex(e), logger.ERROR)
+                self._log(u"Unable to copy file " + cur_file_path + " to " + new_file_path + ": " + ex(e), logger.ERROR)
                 raise
 
         self._combined_file_operation(file_path, new_path, new_base_name, associated_files, action=_int_copy,
                                       subtitles=subtitles)
 
-    def _hardlink(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):
+    def _hardlink(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):  # pylint: disable=too-many-arguments
         """
         Hardlink file and set proper permissions
 
@@ -446,7 +449,7 @@ class PostProcessor(object):
 
         self._combined_file_operation(file_path, new_path, new_base_name, associated_files, action=_int_hard_link, subtitles=subtitles)
 
-    def _moveAndSymlink(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):
+    def _moveAndSymlink(self, file_path, new_path, new_base_name, associated_files=False, subtitles=False):  # pylint: disable=too-many-arguments
         """
         Move file, symlink source location back to destination, and set proper permissions
 
@@ -498,7 +501,7 @@ class PostProcessor(object):
             search_name = re.sub(r"[\.\- ]", "_", curName)
             sql_results = main_db_con.select("SELECT showid, season, quality, version, resource FROM history WHERE resource LIKE ? AND (action % 100 = 4 OR action % 100 = 6)", [search_name])
 
-            if len(sql_results) == 0:
+            if not sql_results:
                 continue
 
             indexer_id = int(sql_results[0]["showid"])
@@ -516,8 +519,8 @@ class PostProcessor(object):
             to_return = (show, season, [], quality, version)
 
             qual_str = common.Quality.qualityStrings[quality] if quality is not None else quality
-            self._log("Found result in history for %s - Season: %s - Quality: %s - Version: %s"
-                % (show.name if show else "UNDEFINED", season, qual_str, version), logger.DEBUG)
+            self._log("Found result in history for {0} - Season: {1} - Quality: {2} - Version: {3}".format
+                      (show.name if show else "UNDEFINED", season, qual_str, version), logger.DEBUG)
 
             return to_return
 
@@ -573,8 +576,11 @@ class PostProcessor(object):
         name = helpers.remove_non_release_groups(remove_extension(name))
 
         # parse the name to break it into show name, season, and episode
-        np = NameParser(True, tryIndexers=True)
-        parse_result = np.parse(name)
+        try:
+            parse_result = NameParser(True, tryIndexers=True).parse(name)
+        except (InvalidNameException, InvalidShowException) as error:
+            logger.log(u"{0}".format(error), logger.DEBUG)
+            return to_return
 
         # show object
         show = parse_result.show
@@ -591,7 +597,8 @@ class PostProcessor(object):
         self._finalize(parse_result)
         return to_return
 
-    def _build_anidb_episode(self, connection, filePath):
+    @staticmethod
+    def _build_anidb_episode(connection, filePath):
         """
         Look up anidb properties for an episode
 
@@ -621,7 +628,7 @@ class PostProcessor(object):
             except Exception as e:
                 self._log(u"exception msg: " + str(e))
 
-    def _find_info(self):
+    def _find_info(self):  # pylint: disable=too-many-locals, too-many-branches
         """
         For a given file try to find the showid, season, and episode.
 
@@ -655,9 +662,9 @@ class PostProcessor(object):
         for cur_attempt in attempt_list:
 
             try:
-                (cur_show, cur_season, cur_episodes, cur_quality, cur_version) = cur_attempt()
-            except (InvalidNameException, InvalidShowException) as e:
-                logger.log(u"Unable to parse, skipping: " + ex(e), logger.DEBUG)
+                cur_show, cur_season, cur_episodes, cur_quality, cur_version = cur_attempt()
+            except (InvalidNameException, InvalidShowException) as error:
+                logger.log(u"{0}".format(error), logger.DEBUG)
                 continue
 
             if not cur_show:
@@ -686,7 +693,7 @@ class PostProcessor(object):
                 try:
                     airdate = episodes[0].toordinal()
                 except AttributeError:
-                    self._log(u"Could not convert to a valid airdate: %s" % episodes[0], logger.DEBUG)
+                    self._log(u"Could not convert to a valid airdate: {0}".format(episodes[0]), logger.DEBUG)
                     episodes = []
                     continue
 
@@ -834,31 +841,59 @@ class PostProcessor(object):
 
         :param ep_obj: The object to use when calling the extra script
         """
+
+        if not sickbeard.EXTRA_SCRIPTS:
+            return
+
+        file_path = self.file_path
+        if isinstance(file_path, unicode):
+            try:
+                file_path = file_path.encode(sickbeard.SYS_ENCODING)
+            except UnicodeEncodeError:
+                # ignore it
+                pass
+
+        ep_location = ep_obj.location
+        if isinstance(ep_location, unicode):
+            try:
+                ep_location = ep_location.encode(sickbeard.SYS_ENCODING)
+            except UnicodeEncodeError:
+                # ignore it
+                pass
+
         for curScriptName in sickbeard.EXTRA_SCRIPTS:
+            if isinstance(curScriptName, unicode):
+                try:
+                    curScriptName = curScriptName.encode(sickbeard.SYS_ENCODING)
+                except UnicodeEncodeError:
+                    # ignore it
+                    pass
 
             # generate a safe command line string to execute the script and provide all the parameters
-            script_cmd = [piece for piece in re.split("( |\\\".*?\\\"|'.*?')", curScriptName) if piece.strip()]
+            script_cmd = [piece for piece in re.split(r'(\'.*?\'|".*?"| )', curScriptName) if piece.strip()]
             script_cmd[0] = ek(os.path.abspath, script_cmd[0])
-            self._log(u"Absolute path to script: " + script_cmd[0], logger.DEBUG)
+            self._log(u"Absolute path to script: {0}".format(script_cmd[0]), logger.DEBUG)
 
-            script_cmd = script_cmd + [ep_obj.location, self.file_path, str(ep_obj.show.indexerid), str(ep_obj.season),
-                                       str(ep_obj.episode), str(ep_obj.airdate)]
+            script_cmd += [
+                ep_location, file_path, str(ep_obj.show.indexerid),
+                str(ep_obj.season), str(ep_obj.episode), str(ep_obj.airdate)
+            ]
 
             # use subprocess to run the command and capture output
-            self._log(u"Executing command " + str(script_cmd))
+            self._log(u"Executing command: {0}".format(script_cmd))
             try:
-                p = subprocess.Popen(script_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT, cwd=sickbeard.PROG_DIR)
-                out, _ = p.communicate()  # @UnusedVariable
-                self._log(u"Script result: " + str(out), logger.DEBUG)
+                p = subprocess.Popen(
+                    script_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, cwd=sickbeard.PROG_DIR
+                )
+                out, _ = p.communicate()
 
-            except OSError as e:
-                self._log(u"Unable to run extra_script: " + ex(e))
+                self._log(u"Script result: {0}".format(out), logger.DEBUG)
 
             except Exception as e:
-                self._log(u"Unable to run extra_script: " + ex(e))
+                self._log(u"Unable to run extra_script: {0}".format(ex(e)))
 
-    def _is_priority(self, ep_obj, new_ep_quality):
+    def _is_priority(self, ep_obj, new_ep_quality):  # pylint: disable=too-many-return-statements
         """
         Determines if the episode is a priority download or not (if it is expected). Episodes which are expected
         (snatched) or larger than the existing episode are priority, others are not.
@@ -903,7 +938,7 @@ class PostProcessor(object):
 
         return False
 
-    def process(self):
+    def process(self):  # pylint: disable=too-many-return-statements, too-many-locals, too-many-branches, too-many-statements
         """
         Post-process a given file
 
@@ -913,16 +948,16 @@ class PostProcessor(object):
         self._log(u"Processing " + self.file_path + " (" + str(self.nzb_name) + ")")
 
         if ek(os.path.isdir, self.file_path):
-            self._log(u"File %s seems to be a directory" % self.file_path)
+            self._log(u"File {0} seems to be a directory".format(self.file_path))
             return False
 
         if not ek(os.path.exists, self.file_path):
-            self._log(u"File %s doesn't exist, did unrar fail?" % self.file_path)
+            self._log(u"File {0} doesn't exist, did unrar fail?".format(self.file_path))
             return False
 
         for ignore_file in self.IGNORED_FILESTRINGS:
             if ignore_file in self.file_path:
-                self._log(u"File %s is ignored type, skipping" % self.file_path)
+                self._log(u"File {0} is ignored type, skipping".format(self.file_path))
                 return False
 
         # reset per-file stuff
@@ -952,7 +987,7 @@ class PostProcessor(object):
         else:
             new_ep_quality = self._get_quality(ep_obj)
 
-        logger.log(u"Quality of the episode we're processing: %s" % common.Quality.qualityStrings[new_ep_quality], logger.DEBUG)
+        logger.log(u"Quality of the episode we're processing: {0}".format(common.Quality.qualityStrings[new_ep_quality]), logger.DEBUG)
 
         # see if this is a priority download (is it snatched, in history, PROPER, or BEST)
         priority_download = self._is_priority(ep_obj, new_ep_quality)
@@ -974,7 +1009,7 @@ class PostProcessor(object):
                 self._log(u"File exists and new file is same size, pretending we did something")
                 return True
 
-            if new_ep_quality <= old_ep_quality != common.Quality.UNKNOWN and existing_file_status != PostProcessor.DOESNT_EXIST:
+            if new_ep_quality <= old_ep_quality and old_ep_quality != common.Quality.UNKNOWN and existing_file_status != PostProcessor.DOESNT_EXIST:
                 if self.is_proper and new_ep_quality == old_ep_quality:
                     self._log(u"New file is a proper/repack, marking it safe to replace")
                 else:
@@ -992,8 +1027,7 @@ class PostProcessor(object):
 
                 # If the file season (ep_obj.season) is bigger than the indexer season (max_season[0][0]), skip the file
                 if int(ep_obj.season) > int(max_season[0][0]):
-                    self._log(u"File has season %s, while the indexer is on season %s. The file may be incorrectly labeled or fake, aborting."
-                              % (str(ep_obj.season), str(max_season[0][0])))
+                    self._log(u"File has season {0}, while the indexer is on season {1}. The file may be incorrectly labeled or fake, aborting.".format(str(ep_obj.season), str(max_season[0][0])))
                     return False
 
         # if the file is priority then we're going to replace it even if it exists
@@ -1137,42 +1171,27 @@ class PostProcessor(object):
         except (OSError, IOError):
             raise EpisodePostProcessingFailedException("Unable to move the files to their new home")
 
-        # download subtitles
-        if sickbeard.USE_SUBTITLES and ep_obj.show.subtitles:
-            for cur_ep in [ep_obj] + ep_obj.relatedEps:
-                with cur_ep.lock:
-                    cur_ep.location = ek(os.path.join, dest_path, new_file_name)
-                    cur_ep.refreshSubtitles()
-                    cur_ep.download_subtitles(force=True)
-
-        # now that processing has finished, we can put the info in the DB. If we do it earlier, then when processing fails, it won't try again.
-        if len(sql_l) > 0:
-            main_db_con = db.DBConnection()
-            main_db_con.mass_action(sql_l)
-
-        # put the new location in the database
-        sql_l = []
         for cur_ep in [ep_obj] + ep_obj.relatedEps:
             with cur_ep.lock:
                 cur_ep.location = ek(os.path.join, dest_path, new_file_name)
+                # download subtitles
+                if sickbeard.USE_SUBTITLES and ep_obj.show.subtitles:
+                    cur_ep.refreshSubtitles()
+                    cur_ep.download_subtitles(force=True)
                 sql_l.append(cur_ep.get_sql())
 
-        if len(sql_l) > 0:
+        # now that processing has finished, we can put the info in the DB. If we do it earlier, then when processing fails, it won't try again.
+        if sql_l:
             main_db_con = db.DBConnection()
             main_db_con.mass_action(sql_l)
 
-        # set file modify stamp to show airdate
-        if sickbeard.AIRDATE_EPISODES:
-            for cur_ep in [ep_obj] + ep_obj.relatedEps:
-                with cur_ep.lock:
-                    cur_ep.airdateModifyStamp()
+        ep_obj.airdateModifyStamp()
 
         # generate nfo/tbn
         try:
             ep_obj.createMetaFiles()
         except Exception:
             logger.log(u"Could not create/update meta files. Continuing with postProcessing...")
-
 
         # log it to history
         history.logDownload(ep_obj, self.file_path, new_ep_quality, self.release_group, new_ep_version)

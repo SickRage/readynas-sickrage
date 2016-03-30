@@ -60,8 +60,8 @@ $('#config-components').tabs();
                         % endif
 
                         <div>
-                            <p class="note">* Provider does not support backlog searches at this time.</p>
-                            <p class="note">! Provider is <b>NOT WORKING</b>.</p>
+                            <p class="note"><span class="red-text">*</span> Provider does not support backlog searches at this time.</p>
+                            <p class="note"><span class="red-text">!</span> Provider is <b>NOT WORKING</b>.</p>
                         </div>
                     </div>
 
@@ -69,6 +69,8 @@ $('#config-components').tabs();
                         <ul id="provider_order_list">
                         % for curProvider in sickbeard.providers.sortedProviderList():
                             <%
+                                ## These will show the '!' not saying they are broken
+                                broken_providers = {}
                                 if curProvider.provider_type == GenericProvider.NZB and not sickbeard.USE_NZBS:
                                     continue
                                 elif curProvider.provider_type == GenericProvider.TORRENT and not sickbeard.USE_TORRENTS:
@@ -84,7 +86,8 @@ $('#config-components').tabs();
                                 <input type="checkbox" id="enable_${curName}" class="provider_enabler" ${('', 'checked="checked"')[curProvider.is_enabled() is True]}/>
                                 <a href="${anon_url(curURL)}" class="imgLink" rel="noreferrer" onclick="window.open(this.href, '_blank'); return false;"><img src="${srRoot}/images/providers/${curProvider.image_name()}" alt="${curProvider.name}" title="${curProvider.name}" width="16" height="16" style="vertical-align:middle;"/></a>
                                 <span style="vertical-align:middle;">${curProvider.name}</span>
-                                ${('*', '')[bool(curProvider.supports_backlog)]}
+                                ${('<span class="red-text">*</span>', '')[bool(curProvider.supports_backlog)]}
+                                ${('<span class="red-text">!</span>', '')[bool(curProvider.get_id() not in broken_providers)]}
                                 <span class="ui-icon ui-icon-arrowthick-2-n-s pull-right" style="vertical-align:middle;"></span>
                                 <span class="ui-icon ${('ui-icon-locked','ui-icon-unlocked')[bool(curProvider.public)]} pull-right" style="vertical-align:middle;"></span>
                             </li>
@@ -177,18 +180,6 @@ $('#config-components').tabs();
                         </div>
                         % endif
 
-                        % if hasattr(curNewznabProvider, 'search_fallback'):
-                        <div class="field-pair">
-                            <label for="${curNewznabProvider.get_id()}_search_fallback">
-                                <span class="component-title">Season search fallback</span>
-                                <span class="component-desc">
-                                    <input type="checkbox" name="${curNewznabProvider.get_id()}_search_fallback" id="${curNewznabProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curNewznabProvider.search_fallback)]}/>
-                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
-                                </span>
-                            </label>
-                        </div>
-                        % endif
-
                         % if hasattr(curNewznabProvider, 'search_mode'):
                         <div class="field-pair">
                             <label>
@@ -207,6 +198,18 @@ $('#config-components').tabs();
                                 <span class="component-title"></span>
                                 <span class="component-desc">
                                     <input type="radio" name="${curNewznabProvider.get_id()}_search_mode" id="${curNewznabProvider.get_id()}_search_mode_eponly" value="eponly" ${('', 'checked="checked"')[curNewznabProvider.search_mode=="eponly"]}/>episodes only.
+                                </span>
+                            </label>
+                        </div>
+                        % endif
+
+                        % if hasattr(curNewznabProvider, 'search_fallback'):
+                        <div class="field-pair">
+                            <label for="${curNewznabProvider.get_id()}_search_fallback">
+                                <span class="component-title">Enable fallback</span>
+                                <span class="component-desc">
+                                    <input type="checkbox" name="${curNewznabProvider.get_id()}_search_fallback" id="${curNewznabProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curNewznabProvider.search_fallback)]}/>
+                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
                                 </span>
                             </label>
                         </div>
@@ -264,18 +267,6 @@ $('#config-components').tabs();
                         </div>
                         % endif
 
-                        % if hasattr(curNzbProvider, 'search_fallback'):
-                        <div class="field-pair">
-                            <label for="${curNzbProvider.get_id()}_search_fallback">
-                                <span class="component-title">Season search fallback</span>
-                                <span class="component-desc">
-                                    <input type="checkbox" name="${curNzbProvider.get_id()}_search_fallback" id="${curNzbProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curNzbProvider.search_fallback)]}/>
-                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
-                                </span>
-                            </label>
-                        </div>
-                        % endif
-
                         % if hasattr(curNzbProvider, 'search_mode'):
                         <div class="field-pair">
                             <label>
@@ -294,6 +285,18 @@ $('#config-components').tabs();
                                 <span class="component-title"></span>
                                 <span class="component-desc">
                                     <input type="radio" name="${curNzbProvider.get_id()}_search_mode" id="${curNzbProvider.get_id()}_search_mode_eponly" value="eponly" ${('', 'checked="checked"')[curNzbProvider.search_mode=="eponly"]}/>episodes only.
+                                </span>
+                            </label>
+                        </div>
+                        % endif
+
+                        % if hasattr(curNzbProvider, 'search_fallback'):
+                        <div class="field-pair">
+                            <label for="${curNzbProvider.get_id()}_search_fallback">
+                                <span class="component-title">Enable fallback</span>
+                                <span class="component-desc">
+                                    <input type="checkbox" name="${curNzbProvider.get_id()}_search_fallback" id="${curNzbProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curNzbProvider.search_fallback)]}/>
+                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
                                 </span>
                             </label>
                         </div>
@@ -537,18 +540,6 @@ $('#config-components').tabs();
                         </div>
                         % endif
 
-                        % if hasattr(curTorrentProvider, 'search_fallback'):
-                        <div class="field-pair">
-                            <label for="${curTorrentProvider.get_id()}_search_fallback">
-                                <span class="component-title">Season search fallback</span>
-                                <span class="component-desc">
-                                    <input type="checkbox" name="${curTorrentProvider.get_id()}_search_fallback" id="${curTorrentProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curTorrentProvider.search_fallback)]}/>
-                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
-                                </span>
-                            </label>
-                        </div>
-                        % endif
-
                         % if hasattr(curTorrentProvider, 'search_mode'):
                         <div class="field-pair">
                             <label>
@@ -567,6 +558,18 @@ $('#config-components').tabs();
                                 <span class="component-title"></span>
                                 <span class="component-desc">
                                     <input type="radio" name="${curTorrentProvider.get_id()}_search_mode" id="${curTorrentProvider.get_id()}_search_mode_eponly" value="eponly" ${('', 'checked="checked"')[curTorrentProvider.search_mode=="eponly"]}/>episodes only.
+                                </span>
+                            </label>
+                        </div>
+                        % endif
+
+                        % if hasattr(curTorrentProvider, 'search_fallback'):
+                        <div class="field-pair">
+                            <label for="${curTorrentProvider.get_id()}_search_fallback">
+                                <span class="component-title">Enable fallback</span>
+                                <span class="component-desc">
+                                    <input type="checkbox" name="${curTorrentProvider.get_id()}_search_fallback" id="${curTorrentProvider.get_id()}_search_fallback" ${('', 'checked="checked"')[bool(curTorrentProvider.search_fallback)]}/>
+                                    <p>when searching for a complete season depending on search mode you may return no results, this helps by restarting the search using the opposite search mode.</p>
                                 </span>
                             </label>
                         </div>

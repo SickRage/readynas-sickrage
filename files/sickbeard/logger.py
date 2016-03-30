@@ -36,6 +36,7 @@ import platform
 import locale
 import traceback
 
+from urllib import quote
 from github import Github, InputFileContent  # pylint: disable=import-error
 
 import sickbeard
@@ -85,13 +86,25 @@ class CensoredFormatter(logging.Formatter, object):
         if not isinstance(msg, unicode):
             msg = msg.decode(self.encoding, 'replace')  # Convert to unicode
 
-        for _, value in censored_items.iteritems():
-            if not isinstance(value, unicode):
-                value = value.decode(self.encoding, 'replace')  # Convert to unicode
-            msg = msg.replace(value, len(value) * '*')
+        # set of censored items
+        censored = {item for _, item in censored_items.iteritems() if item}
+        # set of censored items and urlencoded counterparts
+        censored = censored | {quote(item) for item in censored}
+        # convert set items to unicode and typecast to list
+        censored = list({
+            item.decode(self.encoding, 'replace')
+            if not isinstance(item, unicode) else item
+            for item in censored
+        })
+        # sort the list in order of descending length so that entire item is censored
+        # e.g. password and password_1 both get censored instead of getting ********_1
+        censored.sort(key=len, reverse=True)
+
+        for item in censored:
+            msg = msg.replace(item, len(item) * '*')
 
         # Needed because Newznab apikey isn't stored as key=value in a section.
-        msg = re.sub(r'([&?]r|[&?]apikey|[&?]api_key)=[^&]*([&\w]?)', r'\1=**********\2', msg)
+        msg = re.sub(r'([&?]r|[&?]apikey|[&?]api_key)(?:=|%3D)[^&]*([&\w]?)', r'\1=**********\2', msg, re.I)
         return msg
 
 
@@ -183,10 +196,15 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
         :param kwargs: to pass to logger
         """
         cur_thread = threading.currentThread().getName()
-        if sickbeard.CUR_COMMIT_HASH and len(sickbeard.CUR_COMMIT_HASH) > 6 and level in [ERROR, WARNING]:
-            msg += ' [%s]' % sickbeard.CUR_COMMIT_HASH[:7]
 
-        message = '%s :: %s' % (cur_thread, msg)
+        cur_hash = ''
+        if level == ERROR and sickbeard.CUR_COMMIT_HASH and len(sickbeard.CUR_COMMIT_HASH) > 6:
+            cur_hash = '[{0}] '.format(
+                sickbeard.CUR_COMMIT_HASH[:7]
+            )
+
+        message = '{thread} :: {hash}{message}'.format(
+            thread=cur_thread, hash=cur_hash, message=msg)
 
         # Change the SSL error to a warning with a link to information about how to fix it.
         # Check for u'error [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] sslv3 alert handshake failure (_ssl.c:590)'
@@ -248,11 +266,11 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
         self.submitter_running = True
 
         gh_org = sickbeard.GIT_ORG or 'SickRage'
-        gh_repo = 'sickrage-issues'
+        gh_repo = sickbeard.GIT_REPO or 'SickRage'
 
         git = Github(login_or_token=sickbeard.GIT_USERNAME, password=sickbeard.GIT_PASSWORD, user_agent='SickRage')
 
-        try:  # pylint: disable=too-many-nested-blocks
+        try:
             # read log file
             log_data = None
 
@@ -261,7 +279,7 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                     log_data = log_f.readlines()
 
             for i in range(1, int(sickbeard.LOG_NR)):
-                f_name = '%s.%i' % (self.log_file, i)
+                f_name = '{0}.{1:d}'.format(self.log_file, i)
                 if ek(os.path.isfile, f_name) and (len(log_data) <= 500):
                     with io.open(f_name, encoding='utf-8') as log_f:
                         log_data += log_f.readlines()
@@ -272,17 +290,17 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
             for cur_error in sorted(classes.ErrorViewer.errors, key=lambda error: error.time, reverse=True)[:500]:
                 try:
                     title_error = ss(str(cur_error.title))
-                    if not len(title_error) or title_error == 'None':
+                    if not title_error or title_error == 'None':
                         title_error = re.match(r'^[A-Z0-9\-\[\] :]+::\s*(.*)(?: \[[\w]{7}\])$', ss(cur_error.message)).group(1)
 
                     if len(title_error) > 1000:
                         title_error = title_error[0:1000]
 
                 except Exception as err_msg:  # pylint: disable=broad-except
-                    self.log('Unable to get error title : %s' % ex(err_msg), ERROR)
+                    self.log('Unable to get error title : {0}'.format(ex(err_msg)), ERROR)
 
                 gist = None
-                regex = r'^(%s)\s+([A-Z]+)\s+([0-9A-Z\-]+)\s*(.*)(?: \[[\w]{7}\])$' % cur_error.time
+                regex = r'^({0})\s+([A-Z]+)\s+([0-9A-Z\-]+)\s*(.*)(?: \[[\w]{{7}}\])$'.format(cur_error.time)
                 for i, data in enumerate(log_data):
                     match = re.match(regex, data)
                     if match:
@@ -290,7 +308,7 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                         if LOGGING_LEVELS[level] == ERROR:
                             paste_data = ''.join(log_data[i:i + 50])
                             if paste_data:
-                                gist = git.get_user().create_gist(True, {'sickrage.log': InputFileContent(paste_data)})
+                                gist = git.get_user().create_gist(False, {'sickrage.log': InputFileContent(paste_data)})
                             break
                     else:
                         gist = 'No ERROR found'
@@ -301,17 +319,17 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                     locale_name = 'unknown'
 
                 if gist and gist != 'No ERROR found':
-                    log_link = 'Link to Log: %s' % gist.html_url
+                    log_link = 'Link to Log: {0}'.format(gist.html_url)
                 else:
                     log_link = 'No Log available with ERRORS:'
 
                 msg = [
                     '### INFO',
-                    'Python Version: **%s**' % sys.version[:120].replace('\n', ''),
-                    'Operating System: **%s**' % platform.platform(),
-                    'Locale: %s' % locale_name,
-                    'Branch: **%s**' % sickbeard.BRANCH,
-                    'Commit: SickRage/SickRage@%s' % sickbeard.CUR_COMMIT_HASH,
+                    'Python Version: **{0}**'.format(sys.version[:120].replace('\n', '')),
+                    'Operating System: **{0}**'.format(platform.platform()),
+                    'Locale: {0}'.format(locale_name),
+                    'Branch: **{0}**'.format(sickbeard.BRANCH),
+                    'Commit: SickRage/SickRage@{0}'.format(sickbeard.CUR_COMMIT_HASH),
                     log_link,
                     '### ERROR',
                     '```',
@@ -322,7 +340,7 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                 ]
 
                 message = '\n'.join(msg)
-                title_error = '[APP SUBMITTED]: %s' % title_error
+                title_error = '[APP SUBMITTED]: {0}'.format(title_error)
                 reports = git.get_organization(gh_org).get_repo(gh_repo).get_issues(state='all')
 
                 def is_ascii_error(title):
@@ -346,11 +364,11 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                         issue_id = report.number
                         if not report.raw_data['locked']:
                             if report.create_comment(message):
-                                submitter_result = 'Commented on existing issue #%s successfully!' % issue_id
+                                submitter_result = 'Commented on existing issue #{0} successfully!'.format(issue_id)
                             else:
-                                submitter_result = 'Failed to comment on found issue #%s!' % issue_id
+                                submitter_result = 'Failed to comment on found issue #{0}!'.format(issue_id)
                         else:
-                            submitter_result = 'Issue #%s is locked, check GitHub to find info about the error.' % issue_id
+                            submitter_result = 'Issue #{0} is locked, check GitHub to find info about the error.'.format(issue_id)
 
                         issue_found = True
                         break
@@ -359,7 +377,7 @@ class Logger(object):  # pylint: disable=too-many-instance-attributes
                     issue = git.get_organization(gh_org).get_repo(gh_repo).create_issue(title_error, message)
                     if issue:
                         issue_id = issue.number
-                        submitter_result = 'Your issue ticket #%s was submitted successfully!' % issue_id
+                        submitter_result = 'Your issue ticket #{0} was submitted successfully!'.format(issue_id)
                     else:
                         submitter_result = 'Failed to create a new issue!'
 

@@ -1,12 +1,9 @@
 <%inherit file="/layouts/main.mako"/>
 <%!
     import sickbeard
-    import adba
     from sickbeard import common
-    from sickbeard.common import SKIPPED, WANTED, UNAIRED, ARCHIVED, IGNORED, SNATCHED, SNATCHED_PROPER, SNATCHED_BEST, FAILED
+    from sickbeard.common import SKIPPED, WANTED, IGNORED
     from sickbeard.common import statusStrings
-    from sickrage.helper import exceptions
-    from sickbeard import scene_exceptions
 %>
 
 <%block name="metas">
@@ -224,7 +221,7 @@
                                         </select>
                                         <div><input id="removeSceneName" value="Remove" class="btn float-left" type="button" style="margin-top: 10px;"/></div>
                                     </div>
-                                    <div class="clear-left"><p>This will affect episode search on NZB and torrent providers. This list overrides the original name; it doesn't append to it.</p></div>
+                                    <div class="clear-left"><p>This will affect episode search on NZB and torrent providers. This list appends to the original show name.</p></div>
                                 </span>
                             </label>
                         </div>

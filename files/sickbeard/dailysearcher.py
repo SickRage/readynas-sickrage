@@ -30,12 +30,12 @@ from sickrage.show.Show import Show
 from sickrage.helper.exceptions import MultipleShowObjectsException
 
 
-class DailySearcher(object):
+class DailySearcher(object):  # pylint:disable=too-few-public-methods
     def __init__(self):
         self.lock = threading.Lock()
         self.amActive = False
 
-    def run(self, force=False):
+    def run(self, force=False):  # pylint:disable=too-many-branches
         """
         Runs the daily searcher, queuing selected episodes for search
 
@@ -45,7 +45,7 @@ class DailySearcher(object):
             return
 
         self.amActive = True
-
+        _ = force
         logger.log(u"Searching for new released episodes ...")
 
         if not network_timezones.network_dict:
@@ -60,7 +60,7 @@ class DailySearcher(object):
 
         main_db_con = db.DBConnection()
         sql_results = main_db_con.select("SELECT showid, airdate, season, episode FROM tv_episodes WHERE status = ? AND (airdate <= ? and airdate > 1)",
-                                 [common.UNAIRED, curDate])
+                                         [common.UNAIRED, curDate])
 
         sql_l = []
         show = None
@@ -94,12 +94,12 @@ class DailySearcher(object):
                     logger.log(u"New episode " + ep.prettyName() + " airs today, setting status to SKIPPED because is a special season")
                     ep.status = common.SKIPPED
                 else:
-                    logger.log(u"New episode %s airs today, setting to default episode status for this show: %s" % (ep.prettyName(), common.statusStrings[ep.show.default_ep_status]))
+                    logger.log(u"New episode {0} airs today, setting to default episode status for this show: {1}".format(ep.prettyName(), common.statusStrings[ep.show.default_ep_status]))
                     ep.status = ep.show.default_ep_status
 
                 sql_l.append(ep.get_sql())
 
-        if len(sql_l) > 0:
+        if sql_l:
             main_db_con = db.DBConnection()
             main_db_con.mass_action(sql_l)
         else:

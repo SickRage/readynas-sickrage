@@ -1,7 +1,7 @@
 <Application resource-id="sickrage"><!-- 'resource-id' must be AppName -->
   <Name>SickRage</Name>
   <Author>Mhynlo</Author>
-  <Version>5.1.2</Version>
+  <Version>2016.03.28-2</Version>
   <RequireReboot>0</RequireReboot>
   <ConfigURL/>
   <LaunchURL>http://localhost:8081/</LaunchURL>

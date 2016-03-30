@@ -24,7 +24,7 @@ import traceback
 
 from sickbeard import logger, tvcache
 from sickbeard.bs4_parser import BS4Parser
-
+from sickrage.helper.common import try_int
 from sickrage.providers.torrent.TorrentProvider import TorrentProvider
 
 
@@ -36,7 +36,6 @@ class BlueTigersProvider(TorrentProvider):  # pylint: disable=too-many-instance-
 
         self.username = None
         self.password = None
-        self.ratio = None
         self.token = None
 
         self.cache = tvcache.TVCache(self, min_time=10)  # Only poll BLUETIGERS every 10 minutes max
@@ -49,7 +48,7 @@ class BlueTigersProvider(TorrentProvider):  # pylint: disable=too-many-instance-
         }
 
         self.search_params = {
-            "c16": 1, "c10": 1, "c130": 1, "c131": 1, "c17": 1, "c18": 1, "c19": 1
+            "c16": 1, "c10": 1, "c130": 1, "c131": 1, "c17": 1, "c18": 1, "c19": 1, "c9": 1
         }
 
         self.url = self.urls['base_url']
@@ -64,10 +63,10 @@ class BlueTigersProvider(TorrentProvider):  # pylint: disable=too-many-instance-
             'take_login': '1'
         }
 
-        response = self.get_url(self.urls['login'], post_data=login_params, timeout=30)
+        response = self.get_url(self.urls['login'], post_data=login_params, returns='text')
 
         if not response:
-            check_login = self.get_url(self.urls['base_url'], timeout=30)
+            check_login = self.get_url(self.urls['base_url'], returns='text')
             if re.search('account-logout.php', check_login):
                 return True
             else:
@@ -87,21 +86,22 @@ class BlueTigersProvider(TorrentProvider):  # pylint: disable=too-many-instance-
 
         for mode in search_strings:
             items = []
-            logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+            logger.log(u"Search Mode: {0}".format(mode), logger.DEBUG)
             for search_string in search_strings[mode]:
 
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log(u"Search string: {0}".format
+                               (search_string.decode("utf-8")), logger.DEBUG)
 
                 self.search_params['search'] = search_string
 
-                data = self.get_url(self.urls['search'], params=self.search_params)
+                data = self.get_url(self.urls['search'], params=self.search_params, returns='text')
                 if not data:
                     continue
 
                 try:
                     with BS4Parser(data, 'html5lib') as html:
-                        result_linkz = html.findAll('a', href=re.compile("torrents-details"))
+                        result_linkz = html('a', href=re.compile("torrents-details"))
 
                         if not result_linkz:
                             logger.log(u"Data returned from provider do not contains any torrent", logger.DEBUG)
@@ -123,26 +123,25 @@ class BlueTigersProvider(TorrentProvider):  # pylint: disable=too-many-instance-
                                 # Filter unseeded torrent
                                 # if seeders < self.minseed or leechers < self.minleech:
                                 #    if mode != 'RSS':
-                                #        logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
+                                #        logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format
+                                #                   (title, seeders, leechers), logger.DEBUG)
                                 #    continue
 
-                                item = title, download_url, size, seeders, leechers
+                                item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': None}
                                 if mode != 'RSS':
-                                    logger.log(u"Found result: %s " % title, logger.DEBUG)
+                                    logger.log(u"Found result: {0} ".format(title), logger.DEBUG)
 
                                 items.append(item)
 
                 except Exception:
-                    logger.log(u"Failed parsing provider. Traceback: %s" % traceback.format_exc(), logger.ERROR)
+                    logger.log(u"Failed parsing provider. Traceback: {0}".format(traceback.format_exc()), logger.ERROR)
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
 
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = BlueTigersProvider()

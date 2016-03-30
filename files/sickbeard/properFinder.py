@@ -24,7 +24,6 @@ import datetime
 import operator
 import threading
 import traceback
-
 import sickbeard
 
 from sickbeard import db
@@ -37,11 +36,11 @@ from sickrage.show.History import History
 from sickbeard.name_parser.parser import NameParser, InvalidNameException, InvalidShowException
 
 
-class ProperFinder(object):
+class ProperFinder(object):  # pylint: disable=too-few-public-methods
     def __init__(self):
         self.amActive = False
 
-    def run(self, force=False):
+    def run(self, force=False):  # pylint: disable=unused-argument
         """
         Start looking for new propers
 
@@ -64,13 +63,13 @@ class ProperFinder(object):
             hours, remainder = divmod(run_in.seconds, 3600)
             minutes, seconds = divmod(remainder, 60)
             run_at = u", next check in approx. " + (
-                "%dh, %dm" % (hours, minutes) if 0 < hours else "%dm, %ds" % (minutes, seconds))
+                "{0:d}h, {1:d}m".format(hours, minutes) if 0 < hours else "{0:d}m, {1:d}s".format(minutes, seconds))
 
-        logger.log(u"Completed the search for new propers%s" % run_at)
+        logger.log(u"Completed the search for new propers{0}".format(run_at))
 
         self.amActive = False
 
-    def _getProperList(self):
+    def _getProperList(self):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
         """
         Walk providers for propers
         """
@@ -92,7 +91,7 @@ class ProperFinder(object):
                 logger.log(u"Authentication error: " + ex(e), logger.DEBUG)
                 continue
             except Exception as e:
-                logger.log(u"Error while searching " + curProvider.name + ", skipping: " + ex(e), logger.DEBUG)
+                logger.log(u"Exception while searching propers in " + curProvider.name + ", skipping: " + ex(e), logger.ERROR)
                 logger.log(traceback.format_exc(), logger.DEBUG)
                 continue
 
@@ -117,13 +116,9 @@ class ProperFinder(object):
         for curProper in sortedPropers:
 
             try:
-                myParser = NameParser(False)
-                parse_result = myParser.parse(curProper.name)
-            except InvalidNameException:
-                logger.log(u"Unable to parse the filename " + curProper.name + " into a valid episode", logger.DEBUG)
-                continue
-            except InvalidShowException:
-                logger.log(u"Unable to parse the filename " + curProper.name + " into a valid show", logger.DEBUG)
+                parse_result = NameParser(False).parse(curProper.name)
+            except (InvalidNameException, InvalidShowException) as error:
+                logger.log(u"{0}".format(error), logger.DEBUG)
                 continue
 
             if not parse_result.series_name:
@@ -170,7 +165,7 @@ class ProperFinder(object):
             # check if we actually want this proper (if it's the right quality)
             main_db_con = db.DBConnection()
             sql_results = main_db_con.select("SELECT status FROM tv_episodes WHERE showid = ? AND season = ? AND episode = ?",
-                                     [bestResult.indexerid, bestResult.season, bestResult.episode])
+                                             [bestResult.indexerid, bestResult.season, bestResult.episode])
             if not sql_results:
                 continue
 
@@ -199,8 +194,7 @@ class ProperFinder(object):
                     continue
 
             # if the show is in our list and there hasn't been a proper already added for that particular episode then add it to our list of propers
-            if bestResult.indexerid != -1 and (bestResult.indexerid, bestResult.season, bestResult.episode) not in map(
-                    operator.attrgetter('indexerid', 'season', 'episode'), finalPropers):
+            if bestResult.indexerid != -1 and (bestResult.indexerid, bestResult.season, bestResult.episode) not in {(p.indexerid, p.season, p.episode) for p in finalPropers}:
                 logger.log(u"Found a proper that we need: " + str(bestResult.name))
                 finalPropers.append(bestResult)
 
@@ -227,7 +221,7 @@ class ProperFinder(object):
                  historyLimit.strftime(History.date_format)])
 
             # if we didn't download this episode in the first place we don't know what quality to use for the proper so we can't do it
-            if len(historyResults) == 0:
+            if not historyResults:
                 logger.log(
                     u"Unable to find an original history entry for proper " + curProper.name + " so I'm not downloading it.")
                 continue
@@ -263,10 +257,12 @@ class ProperFinder(object):
                 snatchEpisode(result, SNATCHED_PROPER)
                 time.sleep(cpu_presets[sickbeard.CPU_PRESET])
 
-    def _genericName(self, name):
+    @staticmethod
+    def _genericName(name):
         return name.replace(".", " ").replace("-", " ").replace("_", " ").lower()
 
-    def _set_lastProperSearch(self, when):
+    @staticmethod
+    def _set_lastProperSearch(when):
         """
         Record last propersearch in DB
 
@@ -278,13 +274,14 @@ class ProperFinder(object):
         main_db_con = db.DBConnection()
         sql_results = main_db_con.select("SELECT last_proper_search FROM info")
 
-        if len(sql_results) == 0:
+        if not sql_results:
             main_db_con.action("INSERT INTO info (last_backlog, last_indexer, last_proper_search) VALUES (?,?,?)",
-                        [0, 0, str(when)])
+                               [0, 0, str(when)])
         else:
             main_db_con.action("UPDATE info SET last_proper_search=" + str(when))
 
-    def _get_lastProperSearch(self):
+    @staticmethod
+    def _get_lastProperSearch():
         """
         Find last propersearch from DB
         """

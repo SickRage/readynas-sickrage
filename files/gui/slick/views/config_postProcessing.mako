@@ -3,11 +3,7 @@
     import os.path
     import datetime
     import sickbeard
-    from sickbeard.common import SKIPPED, WANTED, UNAIRED, ARCHIVED, IGNORED, SNATCHED, SNATCHED_PROPER, SNATCHED_BEST, FAILED
-    from sickbeard.common import Quality, qualityPresets, statusStrings, qualityPresetStrings, cpu_presets, MULTI_EP_STRINGS
-    from sickbeard import config
-    from sickbeard import metadata
-    from sickbeard.metadata.generic import GenericMetadata
+    from sickbeard.common import MULTI_EP_STRINGS
     from sickbeard import naming
     from sickrage.helper.encoding import ek
 %>
@@ -103,7 +99,7 @@
                             </label>
                             <label class="nocheck">
                                 <span class="component-title">&nbsp;</span>
-                                <span class="component-desc">comma seperated list of extensions SickRage ignores when Post Processing</span>
+                                <span class="component-desc">comma seperated list of extensions or filename globs SickRage ignores when Post Processing</span>
                             </label>
                         </div>
                         <div class="field-pair">
@@ -112,6 +108,8 @@
                                 <span class="component-title">Postpone if no subtitle</span>
                                 <span class="component-desc">Wait to process a file until subtitles are present</span>
                                 <span class="component-desc">Language names are allowed in subtitle filename (en.srt, pt-br.srt, ita.srt, etc.)</span>
+                                <span class="component-desc">&nbsp;</span>
+                                <span class="component-desc"><b>NOTE:</b> Automatic post processor must be disabled</span>
                             </label>
                         </div>
                         <div class="field-pair">
@@ -222,7 +220,7 @@
                             </label>
                             <label class="nocheck">
                                 <span class="component-title">&nbsp;</span>
-                                <span class="component-desc">See <a href="https://github.com/SickRage/sickrage-issues/wiki/Post-Processing#extra-scripts"><font color='red'><b>Wiki</b></font></a> for script arguments description and usage.</span>
+                                <span class="component-desc">See <a href="https://github.com/SickRage/SickRage/wiki/Post-Processing#extra-scripts"><font color='red'><b>Wiki</b></font></a> for script arguments description and usage.</span>
                             </label>
                         </div>
                         <input type="submit" class="btn config_submitter" value="Save Changes" /><br>
@@ -314,12 +312,12 @@
                                         </tr>
                                         <tr class="even">
                                           <td class="align-right"><b>XEM Season Number:</b></td>
-                                          <td>%XMS</td>
+                                          <td>%XS</td>
                                           <td>2</td>
                                         </tr>
                                         <tr>
                                           <td>&nbsp;</td>
-                                          <td>%0XMS</td>
+                                          <td>%0XS</td>
                                           <td>02</td>
                                         </tr>
                                         <tr class="even">
@@ -334,12 +332,12 @@
                                         </tr>
                                         <tr class="even">
                                           <td class="align-right"><b>XEM Episode Number:</b></td>
-                                          <td>%XME</td>
+                                          <td>%XE</td>
                                           <td>3</td>
                                         </tr>
                                         <tr>
                                           <td>&nbsp;</td>
-                                          <td>%0XME</td>
+                                          <td>%0XE</td>
                                           <td>03</td>
                                         </tr>
                                         <tr class="even">
@@ -917,12 +915,12 @@
                                             </tr>
                                             <tr class="even">
                                               <td class="align-right"><b>XEM Season Number:</b></td>
-                                              <td>%XMS</td>
+                                              <td>%XS</td>
                                               <td>2</td>
                                             </tr>
                                             <tr>
                                               <td>&nbsp;</td>
-                                              <td>%0XMS</td>
+                                              <td>%0XS</td>
                                               <td>02</td>
                                             </tr>
                                             <tr class="even">
@@ -937,12 +935,12 @@
                                             </tr>
                                             <tr class="even">
                                               <td class="align-right"><b>XEM Episode Number:</b></td>
-                                              <td>%XME</td>
+                                              <td>%XE</td>
                                               <td>3</td>
                                             </tr>
                                             <tr>
                                               <td>&nbsp;</td>
-                                              <td>%0XME</td>
+                                              <td>%0XE</td>
                                               <td>03</td>
                                             </tr>
                                             <tr class="even">
@@ -1078,9 +1076,8 @@
                             <label>
                                 <span class="component-title">Metadata Type:</span>
                                 <span class="component-desc">
-                                    <% m_dict = metadata.get_metadata_generator_dict() %>
                                     <select id="metadataType" class="form-control input-sm">
-                                    % for (cur_name, cur_generator) in sorted(m_dict.iteritems()):
+                                    % for (cur_name, cur_generator) in sorted(sickbeard.metadata_provider_dict.iteritems()):
                                         <option value="${cur_generator.get_id()}">${cur_name}</option>
                                     % endfor
                                     </select>
@@ -1089,9 +1086,11 @@
                             <span>Toggle the metadata options that you wish to be created. <b>Multiple targets may be used.</b></span>
                         </div>
 
-                        % for (cur_name, cur_generator) in m_dict.iteritems():
-                        <% cur_metadata_inst = sickbeard.metadata_provider_dict[cur_generator.name] %>
-                        <% cur_id = cur_generator.get_id() %>
+                        % for (cur_name, cur_generator) in sickbeard.metadata_provider_dict.iteritems():
+                        <%
+                            cur_metadata_inst = sickbeard.metadata_provider_dict[cur_generator.name]
+                            cur_id = cur_generator.get_id()
+                        %>
                         <div class="metadataDiv" id="${cur_id}">
                             <div class="metadata_options_wrapper">
                                 <h4>Create:</h4>

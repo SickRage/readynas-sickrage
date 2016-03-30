@@ -52,7 +52,7 @@ def containsAtLeastOneWord(name, words):
     """
     if isinstance(words, basestring):
         words = words.split(',')
-    items = [(re.compile(r'(^|[\W_])%s($|[\W_])' % re.escape(word.strip()), re.I), word.strip()) for word in words]
+    items = [(re.compile(r'(^|[\W_]){0}($|[\W_])'.format(re.escape(word.strip())), re.I), word.strip()) for word in words]
     for regexp, word in items:
         if regexp.search(name):
             return word
@@ -72,12 +72,13 @@ def filterBadReleases(name, parse=True):
     try:
         if parse:
             NameParser().parse(name)
-    except InvalidNameException:
-        logger.log(u"Unable to parse the filename " + name + " into a valid episode", logger.DEBUG)
+    except InvalidNameException as error:
+        logger.log(u"{0}".format(error), logger.DEBUG)
         return False
     except InvalidShowException:
         pass
-    #    logger.log(u"Unable to parse the filename " + name + " into a valid show", logger.DEBUG)
+    # except InvalidShowException as error:
+    #    logger.log(u"{0}".format(error), logger.DEBUG)
     #    return False
 
     # if any of the bad strings are in the name then say no
@@ -110,13 +111,12 @@ def allPossibleShowNames(show, season=-1):
     Returns: a list of all the possible show names
     """
 
-    showNames = get_scene_exceptions(show.indexerid, season=season)[:]
+    showNames = get_scene_exceptions(show.indexerid, season=season)
     if not showNames:  # if we dont have any season specific exceptions fallback to generic exceptions
         season = -1
-        showNames = get_scene_exceptions(show.indexerid, season=season)[:]
+        showNames = get_scene_exceptions(show.indexerid, season=season)
 
-    if season in [-1, 1]:
-        showNames.append(show.name)
+    showNames.append(show.name)
 
     if not show.is_anime:
         newShowNames = []
@@ -140,7 +140,7 @@ def allPossibleShowNames(show, season=-1):
 
         showNames += newShowNames
 
-    return showNames
+    return set(showNames)
 
 
 def determineReleaseName(dir_name=None, nzb_name=None):

@@ -21,13 +21,15 @@
 import re
 import time
 from urllib import quote
+from requests.compat import urljoin
+from requests.utils import dict_from_cookiejar
 
 import sickbeard
 from sickbeard import logger, tvcache
 from sickbeard.bs4_parser import BS4Parser
 from sickbeard.common import cpu_presets
 
-from sickrage.helper.common import convert_size
+from sickrage.helper.common import convert_size, try_int
 from sickrage.providers.torrent.TorrentProvider import TorrentProvider
 
 
@@ -39,7 +41,6 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
 
         self.username = None
         self.password = None
-        self.ratio = None
         self.minseed = None
         self.minleech = None
 
@@ -62,6 +63,8 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
         }
 
     def login(self):
+        if any(dict_from_cookiejar(self.session.cookies).values()):
+            return True
 
         login_params = {
             'username': self.username,
@@ -69,7 +72,7 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
             'submit': 'come on in'
         }
 
-        response = self.get_url(self.urls['login'], post_data=login_params, timeout=30)
+        response = self.get_url(self.urls['login'], post_data=login_params, returns='text')
         if not response:
             logger.log(u"Unable to connect to provider", logger.WARNING)
             return False
@@ -83,7 +86,7 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
 
     @staticmethod
     def _isSection(section, text):
-        title = r'<title>.+? \| %s</title>' % section
+        title = r'<title>.+? \| {0}</title>'.format(section)
         return re.search(title, text, re.IGNORECASE)
 
     def search(self, search_strings, age=0, ep_obj=None):  # pylint: disable=too-many-locals,too-many-branches, too-many-statements
@@ -94,48 +97,48 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
         for mode in search_strings:
             items = []
             if mode != 'RSS':
-                logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+                logger.log(u"Search Mode: {0}".format(mode), logger.DEBUG)
             for search_string in search_strings[mode]:
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log(u"Search string: {0}".format
+                               (search_string.decode("utf-8")), logger.DEBUG)
 
                 search_url = self.urls['search'] % (quote(search_string), self.categories[mode])
 
                 try:
-                    logger.log(u"Search URL: %s" % search_url, logger.DEBUG)
-                    data = self.get_url(search_url)
+                    data = self.get_url(search_url, returns='text')
                     time.sleep(cpu_presets[sickbeard.CPU_PRESET])
                 except Exception as e:
-                    logger.log(u"Unable to fetch data. Error: %s" % repr(e), logger.WARNING)
+                    logger.log(u"Unable to fetch data. Error: {0}".format(repr(e)), logger.WARNING)
 
                 if not data:
                     continue
 
                 with BS4Parser(data, 'html5lib') as html:
-                    torrent_table = html.find('table', attrs={'id': 'torrents-table'})
-                    torrent_rows = torrent_table.find_all('tr') if torrent_table else []
+                    torrent_table = html.find('table', id='torrents-table')
+                    torrent_rows = torrent_table('tr') if torrent_table else []
 
                     # Continue only if at least one Release is found
                     if len(torrent_rows) < 2:
                         logger.log(u"Data returned from provider does not contain any torrents", logger.DEBUG)
                         continue
 
-                    for result in torrent_table.find_all('tr')[1:]:
+                    for result in torrent_table('tr')[1:]:
 
                         try:
-                            link = result.find('td', attrs={'class': 'ttr_name'}).find('a')
-                            url = result.find('td', attrs={'class': 'td_dl'}).find('a')
+                            link = result.find('td', class_='ttr_name').find('a')
+                            url = result.find('td', class_='td_dl').find('a')
 
                             title = link.string
                             if re.search(r'\.\.\.', title):
-                                data = self.get_url(self.url + "/" + link['href'])
+                                data = self.get_url(urljoin(self.url, link['href']), returns='text')
                                 if data:
                                     with BS4Parser(data) as details_html:
                                         title = re.search('(?<=").+(?<!")', details_html.title.string).group(0)
                             download_url = self.urls['download'] % url['href']
-                            seeders = int(result.find('td', attrs={'class': 'ttr_seeders'}).string)
-                            leechers = int(result.find('td', attrs={'class': 'ttr_leechers'}).string)
-                            torrent_size = result.find('td', attrs={'class': 'ttr_size'}).contents[0]
+                            seeders = int(result.find('td', class_='ttr_seeders').string)
+                            leechers = int(result.find('td', class_='ttr_leechers').string)
+                            torrent_size = result.find('td', class_='ttr_size').contents[0]
 
                             size = convert_size(torrent_size) or -1
                         except (AttributeError, TypeError):
@@ -150,20 +153,18 @@ class SCCProvider(TorrentProvider):  # pylint: disable=too-many-instance-attribu
                                 logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
                             continue
 
-                        item = title, download_url, size, seeders, leechers
+                        item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': None}
                         if mode != 'RSS':
-                            logger.log(u"Found result: %s with %s seeders and %s leechers" % (title, seeders, leechers), logger.DEBUG)
+                            logger.log(u"Found result: {0} with {1} seeders and {2} leechers".format(title, seeders, leechers), logger.DEBUG)
 
                         items.append(item)
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
 
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = SCCProvider()

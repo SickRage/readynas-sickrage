@@ -1,6 +1,13 @@
 // @TODO Move these into common.ini when possible,
 //       currently we can't do that as browser.js and a few others need it before this is loaded
+
+function getMeta(pyVar){
+    return $('meta[data-var="' + pyVar + '"]').data('content');
+}
+
 var srRoot = getMeta('srRoot'),
+    srDefaultPage = getMeta('srDefaultPage'),
+    srPID = getMeta('srPID'),
     themeSpinner = getMeta('themeSpinner'),
     anonURL = getMeta('anonURL'),
     topImageHtml = '<img src="' + srRoot + '/images/top.gif" width="31" height="11" alt="Jump to top" />', // jshint ignore:line
@@ -31,10 +38,6 @@ function metaToBool(pyVar){
         meta = (isNaN(meta) ? meta.toLowerCase() : meta.toString());
         return !(meta === 'false' || meta === 'none' || meta === '0');
     }
-}
-
-function getMeta(pyVar){
-    return $('meta[data-var="' + pyVar + '"]').data('content');
 }
 
 function isMeta(pyVar, result){
@@ -959,14 +962,6 @@ var SICKRAGE = {
                 });
             });
 
-            // Update the internal data struct anytime settings are saved to the server
-            $('#email_show').on('notify', function() {
-                loadShowNotifyLists();
-            });
-            $('#prowl_show').on('notify', function() {
-                loadShowNotifyLists();
-            });
-
             function loadShowNotifyLists() {
                 $.getJSON(srRoot + "/home/loadShowNotifyLists", function(list) {
                     var html, s;
@@ -999,6 +994,14 @@ var SICKRAGE = {
             }
             // Load the per show notify lists everytime this page is loaded
             loadShowNotifyLists();
+
+            // Update the internal data struct anytime settings are saved to the server
+            $('#email_show').on('notify', function() {
+                loadShowNotifyLists();
+            });
+            $('#prowl_show').on('notify', function() {
+                loadShowNotifyLists();
+            });
 
             $('#email_show_save').on('click', function() {
                 $.post(srRoot + "/home/saveShowNotifyList", {
@@ -1566,6 +1569,11 @@ var SICKRAGE = {
                     testSABnzbdResult = '#testSABnzbd_result',
                     nzbgetSettings = '#nzbget_settings';
 
+                $('#nzb_method_icon').removeClass (function (index, css) {
+                    return (css.match (/(^|\s)add-client-icon-\S+/g) || []).join(' ');
+                });
+                $('#nzb_method_icon').addClass('add-client-icon-' + selectedProvider.replace('_', '-'));
+
                 $(blackholeSettings).hide();
                 $(sabnzbdSettings).hide();
                 $(testSABnzbd).hide();
@@ -1594,6 +1602,11 @@ var SICKRAGE = {
                     client = '',
                     optionPanel = '#options_torrent_blackhole',
                     rpcurl = ' RPC URL';
+
+                $('#torrent_method_icon').removeClass (function (index, css) {
+                    return (css.match (/(^|\s)add-client-icon-\S+/g) || []).join(' ');
+                });
+                $('#torrent_method_icon').addClass('add-client-icon-' + selectedProvider.replace('_', '-'));
 
                 if (selectedProvider.toLowerCase() !== 'blackhole') {
                     $('#label_warning_deluge').hide();
@@ -1836,7 +1849,7 @@ var SICKRAGE = {
                 $('.show-grid').isotope({
                     filter: function () {
                       var name = $(this).attr('data-name').toLowerCase();
-                      return name.indexOf($('#filterShowName').val()) > -1;
+                      return name.indexOf($('#filterShowName').val().toLowerCase()) > -1;
                     }
                 });
             }, 500));
@@ -1936,9 +1949,9 @@ var SICKRAGE = {
                     7: { filter: 'parsed' }
                 },
                 widgetOptions: {
-                    filter_columnFilters: true, // jshint ignore:line
-                    filter_hideFilters: true, // jshint ignore:line
-                    filter_saveFilters: true, // jshint ignore:line
+                    'filter_columnFilters': true,
+                    'filter_hideFilters': true,
+                    // 'filter_saveFilters': true,
                     filter_functions: { // jshint ignore:line
                         5: function(e, n, f) {
                             var test = false;
@@ -2146,7 +2159,9 @@ var SICKRAGE = {
 
                 if (epArr.length === 0) { return false; }
 
-                window.location.href = srRoot + '/home/setStatus?show=' + $('#showID').attr('value') + '&eps=' + epArr.join('|') + '&status=' + $('#statusSelect').val();
+                var url = srRoot + '/home/setStatus';
+                var params = 'show=' + $('#showID').attr('value') + '&eps=' + epArr.join('|') + '&status=' + $('#statusSelect').val();
+                $.post(url, params, function() { location.reload(true); });
             });
 
             $('.seasonCheck').on('click', function(){
@@ -2325,15 +2340,15 @@ var SICKRAGE = {
             }
 
             function setInputValidInvalid(valid, el) {
-            	if (valid) {
-            		$(el).css({'background-color': '#90EE90','color': '#FFF', 'font-weight': 'bold'}); //green
-            		return true;
-            	} else {
-            		$(el).css({'background-color': '#FF0000','color': '#FFF!important', 'font-weight': 'bold'}); //red
-            		return false;
-            	}
+                if (valid) {
+                    $(el).css({'background-color': '#90EE90','color': '#FFF', 'font-weight': 'bold'}); //green
+                    return true;
+                } else {
+                    $(el).css({'background-color': '#FF0000','color': '#FFF!important', 'font-weight': 'bold'}); //red
+                    return false;
+                }
             }
-            
+
             $('.sceneSeasonXEpisode').on('change', function() {
                 // Strip non-numeric characters
                 $(this).val($(this).val().replace(/[^0-9xX]*/g, ''));
@@ -2348,16 +2363,16 @@ var SICKRAGE = {
                     sceneEpisode = m[2];
                     isValid = setInputValidInvalid(true, $(this));
                 } else if (onlyEpisode) {
-                	// For example when '5' is filled in instead of '1x5', asume it's the first season
-                	sceneSeason = forSeason;
-                	sceneEpisode = onlyEpisode[1];
-                	isValid = setInputValidInvalid(true, $(this));
+                    // For example when '5' is filled in instead of '1x5', asume it's the first season
+                    sceneSeason = forSeason;
+                    sceneEpisode = onlyEpisode[1];
+                    isValid = setInputValidInvalid(true, $(this));
                 } else {
-                	isValid = setInputValidInvalid(false, $(this));
+                    isValid = setInputValidInvalid(false, $(this));
                 }
                 // Only perform the request when there is a valid input
                 if (isValid){
-                	setEpisodeSceneNumbering(forSeason, forEpisode, sceneSeason, sceneEpisode);
+                    setEpisodeSceneNumbering(forSeason, forEpisode, sceneSeason, sceneEpisode);
                 }
             });
 
@@ -2409,18 +2424,18 @@ var SICKRAGE = {
             .on('shown.bs.popover', function (){
                 $.tablesorter.columnSelector.attachTo($("#showTable, #animeTable"), '#popover-target');
             });
-            
-            // Moved and rewritten this from displayShow. This changes the button when clicked for collapsing/expanding the 
+
+            // Moved and rewritten this from displayShow. This changes the button when clicked for collapsing/expanding the
             // Season to Show Episodes or Hide Episodes.
             $(function() {
-            	$('.collapse.toggle').on('hide.bs.collapse', function () {
-            		var reg = /collapseSeason-([0-9]+)/g;
-            		var result = reg.exec(this.id);
+                $('.collapse.toggle').on('hide.bs.collapse', function () {
+                    var reg = /collapseSeason-([0-9]+)/g;
+                    var result = reg.exec(this.id);
                     $('#showseason-' + result[1]).text('Show Episodes');
                 });
                 $('.collapse.toggle').on('show.bs.collapse', function () {
-                	var reg = /collapseSeason-([0-9]+)/g;
-            		var result = reg.exec(this.id);
+                    var reg = /collapseSeason-([0-9]+)/g;
+                    var result = reg.exec(this.id);
                     $('#showseason-' + result[1]).text('Hide Episodes');
                 });
             });
@@ -2445,6 +2460,32 @@ var SICKRAGE = {
                 widgets: ['saveSort', 'zebra'],
                 sortList: [[3,0], [4,0], [2,1]]
             });
+        },
+        restart: function(){
+            var currentPid = srPID;
+            var checkIsAlive = setInterval(function(){
+                $.get(srRoot + '/home/is_alive/', function(data) {
+                    if (data.msg.toLowerCase() === 'nope') {
+                        // if it's still initializing then just wait and try again
+                        $('#restart_message').show();
+                    } else {
+                        // if this is before we've even shut down then just try again later
+                        if (currentPid === '' || data.msg === currentPid) {
+                            $('#shut_down_loading').hide();
+                            $('#shut_down_success').show();
+                            currentPid = data.msg;
+                        } else {
+                            clearInterval(checkIsAlive);
+                            $('#restart_loading').hide();
+                            $('#restart_success').show();
+                            $('#refresh_message').show();
+                            setTimeout(function(){
+                                window.location = srRoot + '/' + srDefaultPage + '/';
+                            }, 5000);
+                        }
+                    }
+                }, 'jsonp');
+            }, 100);
         }
     },
     manage: {
@@ -2562,7 +2603,7 @@ var SICKRAGE = {
 
                 if (removeArr.length === 0) { return false; }
 
-                window.location.href = srRoot + '/manage/failedDownloads?toRemove='+removeArr.join('|');
+                $.post(srRoot + '/manage/failedDownloads', 'toRemove='+removeArr.join('|'), function() { location.reload(true); });
             });
 
             if($('.removeCheck').length){
@@ -2916,8 +2957,92 @@ var SICKRAGE = {
 
         },
         newShow: function() {
-            var searchRequestXhr = null;
+            function updateBlackWhiteList(showName) {
+                $('#white').children().remove();
+                $('#black').children().remove();
+                $('#pool').children().remove();
 
+                if ($('#anime').prop('checked')) {
+                    $('#blackwhitelist').show();
+                    if (showName) {
+                        $.getJSON(srRoot + '/home/fetch_releasegroups', {
+                            'show_name': showName
+                        }, function (data) {
+                            if (data.result === 'success') {
+                                $.each(data.groups, function(i, group) {
+                                    var option = $("<option>");
+                                    option.attr("value", group.name);
+                                    option.html(group.name + ' | ' + group.rating + ' | ' + group.range);
+                                    option.appendTo('#pool');
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    $('#blackwhitelist').hide();
+                }
+            }
+
+            function updateSampleText() {
+                // if something's selected then we have some behavior to figure out
+
+                var showName, sepChar;
+                // if they've picked a radio button then use that
+                if ($('input:radio[name=whichSeries]:checked').length) {
+                    showName = $('input:radio[name=whichSeries]:checked').val().split('|')[4];
+                } else if ($('input:hidden[name=whichSeries]').length && $('input:hidden[name=whichSeries]').val().length) { // if we provided a show in the hidden field, use that
+                    showName = $('#providedName').val();
+                } else {
+                    showName = '';
+                }
+                updateBlackWhiteList(showName);
+                var sampleText = 'Adding show <b>' + showName + '</b> into <b>';
+
+                // if we have a root dir selected, figure out the path
+                if ($('#rootDirs option:selected').length) {
+                    var rootDirectoryText = $('#rootDirs option:selected').val();
+                    if (rootDirectoryText.indexOf('/') >= 0) {
+                        sepChar = '/';
+                    } else if (rootDirectoryText.indexOf('\\') >= 0) {
+                        sepChar = '\\';
+                    } else {
+                        sepChar = '';
+                    }
+
+                    if (rootDirectoryText.substr(sampleText.length - 1) !== sepChar) {
+                        rootDirectoryText += sepChar;
+                    }
+                    rootDirectoryText += '<i>||</i>' + sepChar;
+
+                    sampleText += rootDirectoryText;
+                } else if ($('#fullShowPath').length && $('#fullShowPath').val().length) {
+                    sampleText += $('#fullShowPath').val();
+                } else {
+                    sampleText += 'unknown dir.';
+                }
+
+                sampleText += '</b>';
+
+                // if we have a show name then sanitize and use it for the dir name
+                if (showName.length) {
+                    $.get(srRoot + '/addShows/sanitizeFileName', {name: showName}, function (data) {
+                        $('#displayText').html(sampleText.replace('||', data));
+                    });
+                // if not then it's unknown
+                } else {
+                    $('#displayText').html(sampleText.replace('||', '??'));
+                }
+
+                // also toggle the add show button
+                if (($("#rootDirs option:selected").length || ($('#fullShowPath').length && $('#fullShowPath').val().length)) &&
+                    ($('input:radio[name=whichSeries]:checked').length) || ($('input:hidden[name=whichSeries]').length && $('input:hidden[name=whichSeries]').val().length)) {
+                    $('#addShowButton').attr('disabled', false);
+                } else {
+                    $('#addShowButton').attr('disabled', true);
+                }
+            }
+
+            var searchRequestXhr = null;
             function searchIndexers() {
                 if (!$('#nameToSearch').val().length) { return; }
 
@@ -3019,19 +3144,6 @@ var SICKRAGE = {
             * Visit http://www.dynamicdrive.com/ for this script and 100s more.
             ***********************************************/
 
-            // @TODO we need to move to real forms instead of this
-
-            var myform = new formtowizard({ // jshint ignore:line
-                formid: 'addShowForm',
-                revealfx: ['slide', 500],
-                oninit: function () {
-                    updateSampleText();
-                    if ($('input:hidden[name=whichSeries]').length && $('#fullShowPath').length) {
-                        goToStep(3);
-                    }
-                }
-            });
-
             function goToStep(num) {
                 $('.step').each(function () {
                     if ($.data(this, 'section') + 1 === num) {
@@ -3042,64 +3154,17 @@ var SICKRAGE = {
 
             $('#nameToSearch').focus();
 
-            function updateSampleText() {
-                // if something's selected then we have some behavior to figure out
-
-                var showName, sepChar;
-                // if they've picked a radio button then use that
-                if ($('input:radio[name=whichSeries]:checked').length) {
-                    showName = $('input:radio[name=whichSeries]:checked').val().split('|')[4];
-                } else if ($('input:hidden[name=whichSeries]').length && $('input:hidden[name=whichSeries]').val().length) { // if we provided a show in the hidden field, use that
-                    showName = $('#providedName').val();
-                } else {
-                    showName = '';
-                }
-                updateBlackWhiteList(showName);
-                var sampleText = 'Adding show <b>' + showName + '</b> into <b>';
-
-                // if we have a root dir selected, figure out the path
-                if ($('#rootDirs option:selected').length) {
-                    var rootDirectoryText = $('#rootDirs option:selected').val();
-                    if (rootDirectoryText.indexOf('/') >= 0) {
-                        sepChar = '/';
-                    } else if (rootDirectoryText.indexOf('\\') >= 0) {
-                        sepChar = '\\';
-                    } else {
-                        sepChar = '';
+            // @TODO we need to move to real forms instead of this
+            var myform = new formtowizard({ // jshint ignore:line
+                formid: 'addShowForm',
+                revealfx: ['slide', 500],
+                oninit: function () {
+                    updateSampleText();
+                    if ($('input:hidden[name=whichSeries]').length && $('#fullShowPath').length) {
+                        goToStep(3);
                     }
-
-                    if (rootDirectoryText.substr(sampleText.length - 1) !== sepChar) {
-                        rootDirectoryText += sepChar;
-                    }
-                    rootDirectoryText += '<i>||</i>' + sepChar;
-
-                    sampleText += rootDirectoryText;
-                } else if ($('#fullShowPath').length && $('#fullShowPath').val().length) {
-                    sampleText += $('#fullShowPath').val();
-                } else {
-                    sampleText += 'unknown dir.';
                 }
-
-                sampleText += '</b>';
-
-                // if we have a show name then sanitize and use it for the dir name
-                if (showName.length) {
-                    $.get(srRoot + '/addShows/sanitizeFileName', {name: showName}, function (data) {
-                        $('#displayText').html(sampleText.replace('||', data));
-                    });
-                // if not then it's unknown
-                } else {
-                    $('#displayText').html(sampleText.replace('||', '??'));
-                }
-
-                // also toggle the add show button
-                if (($("#rootDirs option:selected").length || ($('#fullShowPath').length && $('#fullShowPath').val().length)) &&
-                    ($('input:radio[name=whichSeries]:checked').length) || ($('input:hidden[name=whichSeries]').length && $('input:hidden[name=whichSeries]').val().length)) {
-                    $('#addShowButton').attr('disabled', false);
-                } else {
-                    $('#addShowButton').attr('disabled', true);
-                }
-            }
+            });
 
             $('#rootDirText').change(updateSampleText);
             $('#searchResults').on('change', '#whichSeries', updateSampleText);
@@ -3115,31 +3180,6 @@ var SICKRAGE = {
                 myform.loadsection(2);
             });
 
-            function updateBlackWhiteList(showName) {
-                $('#white').children().remove();
-                $('#black').children().remove();
-                $('#pool').children().remove();
-
-                if ($('#anime').prop('checked')) {
-                    $('#blackwhitelist').show();
-                    if (showName) {
-                        $.getJSON(srRoot + '/home/fetch_releasegroups', {
-                            'show_name': showName
-                        }, function (data) {
-                            if (data.result === 'success') {
-                                $.each(data.groups, function(i, group) {
-                                    var option = $("<option>");
-                                    option.attr("value", group.name);
-                                    option.html(group.name + ' | ' + group.rating + ' | ' + group.range);
-                                    option.appendTo('#pool');
-                                });
-                            }
-                        });
-                    }
-                } else {
-                    $('#blackwhitelist').hide();
-                }
-            }
         },
         addExistingShow: function(){
             $('#tableDiv').on('click', '#checkAll', function() {
@@ -3163,7 +3203,12 @@ var SICKRAGE = {
                     return false;
                 }
 
-                window.location.href = srRoot + '/addShows/addExistingShows?promptForSettings=' + ($('#promptForSettings').prop('checked') ? 'on' : 'off') + '&shows_to_add=' + dirArr.join('&shows_to_add=');
+                var url = srRoot + '/addShows/addExistingShows?promptForSettings=' + ($('#promptForSettings').prop('checked') ? 'on' : 'off') + '&shows_to_add=' + dirArr.join('&shows_to_add=');
+                if(url.length < 2083) {
+                    window.location.href = url;
+                } else {
+                    alert("You've selected too many shows, please uncheck some and try again. [" + url.length + "/2083 characters]");
+                }
             });
 
             function loadContent() {
@@ -3178,7 +3223,7 @@ var SICKRAGE = {
                 });
 
                 $('#tableDiv').html('<img id="searchingAnim" src="' + srRoot + '/images/loading32.gif" height="32" width="32" /> loading folders...');
-                $.get(srRoot + '/addShows/massAddTable/', url, function(data) {
+                $.post(srRoot + '/addShows/massAddTable/', url, function(data) {
                     $('#tableDiv').html(data);
                     $("#addRootDirTable").tablesorter({
                         //sortList: [[1,0]],

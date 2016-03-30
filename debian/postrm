@@ -18,7 +18,7 @@ set -e
 
 case "$1" in
     purge)
-       rm -f /apps/sickrage/*
+       find /apps/sickrage/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
        find /apps/sickrage/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
        rm /apps/sickrage/.localapp
 

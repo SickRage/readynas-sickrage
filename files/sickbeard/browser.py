@@ -1,7 +1,7 @@
 # coding=utf-8
 # Author: Nic Wolfe <nic@wolfeden.ca>
-# URL: https://sickrage.github.io/
-# Git: https://github.com/SickRage/SickRage.git
+#
+# URL: https://sickrage.github.io
 #
 # This file is part of SickRage.
 #
@@ -24,6 +24,7 @@ import os
 import string
 
 from sickbeard import logger
+
 from sickrage.helper.encoding import ek
 
 
@@ -73,13 +74,16 @@ def getFileList(path, includeFiles):
 
 
 def foldersAtPath(path, includeParent=False, includeFiles=False):
-    """ Returns a list of dictionaries with the folders contained at the given path
-        Give the empty string as the path to list the contents of the root path
-        (under Unix this means "/", on Windows this will be a list of drive letters)
+    """
+    Returns a list of dictionaries with the folders contained at the given path.
 
-        :param includeParent: boolean, include parent dir in list as well
-        :param includeFiles: boolean, include files or only directories
-        :return: list of folders/files
+    Give the empty string as the path to list the contents of the root path
+    (under Unix this means "/", on Windows this will be a list of drive letters)
+
+    :param path: to list contents
+    :param includeParent: boolean, include parent dir in list as well
+    :param includeFiles: boolean, include files or only directories
+    :return: list of folders/files
     """
 
     # walk up the tree until we find a valid path
@@ -111,7 +115,7 @@ def foldersAtPath(path, includeParent=False, includeFiles=False):
     try:
         file_list = getFileList(path, includeFiles)
     except OSError as e:
-        logger.log('Unable to open %s: %s / %s' % (path, repr(e), str(e)), logger.WARNING)
+        logger.log('Unable to open {0}: {1} / {2}'.format(path, repr(e), str(e)), logger.WARNING)
         file_list = getFileList(parent_path, includeFiles)
 
     file_list = sorted(file_list,

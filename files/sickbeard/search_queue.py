@@ -137,7 +137,7 @@ class DailySearchQueueItem(generic_queue.QueueItem):
             logger.log(u"Beginning daily search for new episodes")
             foundResults = search.searchForNeededEpisodes()
 
-            if not len(foundResults):
+            if not foundResults:
                 logger.log(u"No needed episodes found")
             else:
                 for result in foundResults:
@@ -188,7 +188,7 @@ class ManualSearchQueueItem(generic_queue.QueueItem):
 
             else:
                 ui.notifications.message('No downloads were found',
-                                         "Couldn't find a download for <i>%s</i>" % self.segment.prettyName())
+                                         "Couldn't find a download for <i>{0}</i>".format(self.segment.prettyName()))
 
                 logger.log(u"Unable to find a download for: [" + self.segment.prettyName() + "]")
 

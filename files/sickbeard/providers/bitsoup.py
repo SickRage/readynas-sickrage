@@ -20,11 +20,12 @@
 
 import re
 import traceback
+from requests.utils import dict_from_cookiejar
 
 from sickbeard import logger, tvcache
 from sickbeard.bs4_parser import BS4Parser
 
-from sickrage.helper.common import convert_size
+from sickrage.helper.common import convert_size, try_int
 from sickrage.providers.torrent.TorrentProvider import TorrentProvider
 
 
@@ -46,7 +47,6 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
 
         self.username = None
         self.password = None
-        self.ratio = None
         self.minseed = None
         self.minleech = None
 
@@ -63,6 +63,8 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
         return True
 
     def login(self):
+        if any(dict_from_cookiejar(self.session.cookies).values()):
+            return True
 
         login_params = {
             'username': self.username,
@@ -70,7 +72,7 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
             'ssl': 'yes'
         }
 
-        response = self.get_url(self.urls['login'], post_data=login_params, timeout=30)
+        response = self.get_url(self.urls['login'], post_data=login_params, returns='text')
         if not response:
             logger.log(u"Unable to connect to provider", logger.WARNING)
             return False
@@ -88,21 +90,22 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
 
         for mode in search_strings:
             items = []
-            logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+            logger.log(u"Search Mode: {0}".format(mode), logger.DEBUG)
             for search_string in search_strings[mode]:
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log(u"Search string: {0}".format
+                               (search_string.decode("utf-8")), logger.DEBUG)
 
                 self.search_params['search'] = search_string
 
-                data = self.get_url(self.urls['search'], params=self.search_params)
+                data = self.get_url(self.urls['search'], params=self.search_params, returns='text')
                 if not data:
                     continue
 
                 try:
                     with BS4Parser(data, "html.parser") as html:
-                        torrent_table = html.find('table', attrs={'class': 'koptekst'})
-                        torrent_rows = torrent_table.find_all('tr') if torrent_table else []
+                        torrent_table = html.find('table', class_='koptekst')
+                        torrent_rows = torrent_table('tr') if torrent_table else []
 
                         # Continue only if one Release is found
                         if len(torrent_rows) < 2:
@@ -110,7 +113,7 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
                             continue
 
                         for result in torrent_rows[1:]:
-                            cells = result.find_all('td')
+                            cells = result('td')
 
                             link = cells[1].find('a')
                             download_url = self.urls['download'] % cells[2].find('a')['href']
@@ -130,29 +133,28 @@ class BitSoupProvider(TorrentProvider):  # pylint: disable=too-many-instance-att
                                 # Filter unseeded torrent
                             if seeders < self.minseed or leechers < self.minleech:
                                 if mode != 'RSS':
-                                    logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
+                                    logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format
+                                               (title, seeders, leechers), logger.DEBUG)
                                 continue
 
                             if seeders >= 32768 or leechers >= 32768:
                                 continue
 
-                            item = title, download_url, size, seeders, leechers
+                            item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': None}
                             if mode != 'RSS':
-                                logger.log(u"Found result: %s with %s seeders and %s leechers" % (title, seeders, leechers), logger.DEBUG)
+                                logger.log(u"Found result: {0} with {1} seeders and {2} leechers".format(title, seeders, leechers), logger.DEBUG)
 
                             items.append(item)
 
                 except Exception:
-                    logger.log(u"Failed parsing provider. Traceback: %s" % traceback.format_exc(), logger.WARNING)
+                    logger.log(u"Failed parsing provider. Traceback: {0}".format(traceback.format_exc()), logger.WARNING)
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
 
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = BitSoupProvider()

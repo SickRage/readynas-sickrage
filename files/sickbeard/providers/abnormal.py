@@ -18,9 +18,11 @@
 # You should have received a copy of the GNU General Public License
 # along with SickRage. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import re
+from requests.compat import urljoin
 from requests.utils import dict_from_cookiejar
-from urllib import urlencode
 
 from sickbeard import logger, tvcache
 from sickbeard.bs4_parser import BS4Parser
@@ -33,22 +35,28 @@ class ABNormalProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
 
     def __init__(self):
 
-        TorrentProvider.__init__(self, "ABNormal")
+        # Provider Init
+        TorrentProvider.__init__(self, 'ABNormal')
 
+        # Credentials
         self.username = None
         self.password = None
-        self.ratio = None
+
+        # Torrent Stats
         self.minseed = None
         self.minleech = None
 
+        # URLs
         self.url = 'https://abnormal.ws'
         self.urls = {
-            'login': self.url + '/login.php',
-            'search': self.url + '/torrents.php?'
+            'login': urljoin(self.url, 'login.php'),
+            'search': urljoin(self.url, 'torrents.php'),
         }
 
+        # Proper Strings
         self.proper_strings = ['PROPER']
 
+        # Cache
         self.cache = tvcache.TVCache(self, min_time=30)
 
     def login(self):
@@ -60,13 +68,13 @@ class ABNormalProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
             'password': self.password,
         }
 
-        response = self.get_url(self.urls['login'], post_data=login_params, timeout=30)
+        response = self.get_url(self.urls['login'], post_data=login_params, returns='text')
         if not response:
-            logger.log(u"Unable to connect to provider", logger.WARNING)
+            logger.log('Unable to connect to provider', logger.WARNING)
             return False
 
         if not re.search('torrents.php', response):
-            logger.log(u"Invalid username or password. Check your settings", logger.WARNING)
+            logger.log('Invalid username or password. Check your settings', logger.WARNING)
             return False
 
         return True
@@ -76,84 +84,85 @@ class ABNormalProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
         if not self.login():
             return results
 
+        # Search Params
         search_params = {
             'cat[]': ['TV|SD|VOSTFR', 'TV|HD|VOSTFR', 'TV|SD|VF', 'TV|HD|VF', 'TV|PACK|FR', 'TV|PACK|VOSTFR', 'TV|EMISSIONS', 'ANIME'],
-            # Sorting: by time. Available parameters: ReleaseName, Seeders, Leechers, Snatched, Size
-            'order': 'Time',
-            # Both ASC and DESC are available
+            # Both ASC and DESC are available for sort direction
             'way': 'DESC'
         }
 
+        # Units
+        units = ['O', 'KO', 'MO', 'GO', 'TO', 'PO']
+
         for mode in search_strings:
             items = []
-            logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+            logger.log('Search Mode: {0}'.format(mode), logger.DEBUG)
+
             for search_string in search_strings[mode]:
 
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log('Search string: {0}'.format
+                               (search_string.decode('utf-8')), logger.DEBUG)
 
-                search_params['search'] = search_string
-                search_url = self.urls['search'] + urlencode(search_params, doseq=True)
-                logger.log(u"Search URL: %s" % search_url, logger.DEBUG)
-
-                data = self.get_url(search_url)
+                # Sorting: Available parameters: ReleaseName, Seeders, Leechers, Snatched, Size
+                search_params['order'] = ('Seeders', 'Time')[mode == 'RSS']
+                search_params['search'] = re.sub(r'[()]', '', search_string)
+                data = self.get_url(self.urls['search'], params=search_params, returns='text')
                 if not data:
                     continue
 
                 with BS4Parser(data, 'html5lib') as html:
-                    if mode != 'RSS':
-                        torrent_table = html.find("table", class_="torrent_table cats")
-                    else:
-                        torrent_table = html.find("table", class_="torrent_table cats no_grouping")
-                    torrent_table = html.find("table", class_="torrent_table cats")
-                    torrent_rows = torrent_table.find_all('tr') if torrent_table else []
+                    torrent_table = html.find(class_='torrent_table')
+                    torrent_rows = torrent_table('tr') if torrent_table else []
 
-                    # Continue only if one Release is found
+                    # Continue only if at least one Release is found
                     if len(torrent_rows) < 2:
-                        logger.log(u"Data returned from provider does not contain any torrents", logger.DEBUG)
+                        logger.log('Data returned from provider does not contain any torrents', logger.DEBUG)
                         continue
 
                     # Catégorie, Release, Date, DL, Size, C, S, L
-                    labels = [label.get_text(strip=True) for label in torrent_rows[0].find_all('td')]
+                    labels = [label.get_text(strip=True) for label in torrent_rows[0]('td')]
 
+                    # Skip column headers
                     for result in torrent_rows[1:]:
-                        cells = result.find_all('td')
+                        cells = result('td')
                         if len(cells) < len(labels):
                             continue
 
                         try:
                             title = cells[labels.index('Release')].get_text(strip=True)
-                            download_url = self.url + '/' + cells[labels.index('DL')].find('a', class_='tooltip')['href']
+                            download_url = urljoin(self.url, cells[labels.index('DL')].find('a', class_='tooltip')['href'])
                             if not all([title, download_url]):
                                 continue
 
                             seeders = try_int(cells[labels.index('S')].get_text(strip=True))
                             leechers = try_int(cells[labels.index('L')].get_text(strip=True))
+
                             # Filter unseeded torrent
                             if seeders < self.minseed or leechers < self.minleech:
                                 if mode != 'RSS':
-                                    logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
+                                    logger.log('Discarding torrent because it doesn\'t meet the minimum seeders or leechers: {0} (S:{1} L:{2})'.format
+                                               (title, seeders, leechers), logger.DEBUG)
                                 continue
 
-                            torrent_size = cells[labels.index('Size')].get_text(strip=True)
-                            french_units = ['O', 'KO', 'MO', 'GO', 'TO', 'PO']
-                            size = convert_size(torrent_size, units=french_units) or -1
+                            size_index = labels.index('Size') if 'Size' in labels else labels.index('Taille')
+                            torrent_size = cells[size_index].get_text()
+                            size = convert_size(torrent_size, units=units) or -1
 
-                            item = title, download_url, size, seeders, leechers
+                            item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': None}
                             if mode != 'RSS':
-                                logger.log(u"Found result: %s with %s seeders and %s leechers" % (title, seeders, leechers), logger.DEBUG)
+                                logger.log('Found result: {0} with {1} seeders and {2} leechers'.format
+                                           (title, seeders, leechers), logger.DEBUG)
 
                             items.append(item)
                         except StandardError:
                             continue
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = ABNormalProvider()

@@ -19,12 +19,13 @@
 # along with SickRage. If not, see <http://www.gnu.org/licenses/>.
 
 import re
+from requests.utils import dict_from_cookiejar
 
 from sickbeard import logger, tvcache
 from sickbeard.bs4_parser import BS4Parser
 
 from sickrage.helper.exceptions import AuthException, ex
-from sickrage.helper.common import convert_size
+from sickrage.helper.common import convert_size, try_int
 from sickrage.providers.torrent.TorrentProvider import TorrentProvider
 
 
@@ -36,7 +37,6 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
 
         self.username = None
         self.password = None
-        self.ratio = None
         self.freeleech = False
         self.minseed = None
         self.minleech = None
@@ -59,13 +59,15 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
         return True
 
     def login(self):
+        if any(dict_from_cookiejar(self.session.cookies).values()):
+            return True
 
         login_params = {'username': self.username,
                         'password': self.password,
                         'login': 'submit'}
 
-        self.get_url(self.urls['login'], timeout=30)
-        response = self.get_url(self.urls['login'], post_data=login_params, timeout=30)
+        self.get_url(self.urls['login'], returns='text')
+        response = self.get_url(self.urls['login'], post_data=login_params, returns='text')
         if not response:
             logger.log(u"Unable to connect to provider", logger.WARNING)
             return False
@@ -91,18 +93,18 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
 
         for mode in search_params:
             items = []
-            logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+            logger.log(u"Search Mode: {0}".format(mode), logger.DEBUG)
             for search_string in search_params[mode]:
 
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log(u"Search string: {0}".format
+                               (search_string.decode("utf-8")), logger.DEBUG)
 
                 # URL with 50 tv-show results, or max 150 if adjusted in IPTorrents profile
                 search_url = self.urls['search'] % (self.categories, freeleech, search_string)
                 search_url += ';o=seeders' if mode != 'RSS' else ''
-                logger.log(u"Search URL: %s" % search_url, logger.DEBUG)
 
-                data = self.get_url(search_url)
+                data = self.get_url(search_url, returns='text')
                 if not data:
                     continue
 
@@ -117,8 +119,8 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
                             logger.log(u"Data returned from provider does not contain any torrents", logger.DEBUG)
                             continue
 
-                        torrent_table = html.find('table', attrs={'class': 'torrents'})
-                        torrents = torrent_table.find_all('tr') if torrent_table else []
+                        torrent_table = html.find('table', class_='torrents')
+                        torrents = torrent_table('tr') if torrent_table else []
 
                         # Continue only if one Release is found
                         if len(torrents) < 2:
@@ -127,11 +129,11 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
 
                         for result in torrents[1:]:
                             try:
-                                title = result.find_all('td')[1].find('a').text
-                                download_url = self.urls['base_url'] + result.find_all('td')[3].find('a')['href']
-                                seeders = int(result.find('td', attrs={'class': 'ac t_seeders'}).text)
-                                leechers = int(result.find('td', attrs={'class': 'ac t_leechers'}).text)
-                                torrent_size = result.find_all('td')[5].text
+                                title = result('td')[1].find('a').text
+                                download_url = self.urls['base_url'] + result('td')[3].find('a')['href']
+                                seeders = int(result.find('td', class_='ac t_seeders').text)
+                                leechers = int(result.find('td', class_='ac t_leechers').text)
+                                torrent_size = result('td')[5].text
                                 size = convert_size(torrent_size) or -1
                             except (AttributeError, TypeError, KeyError):
                                 continue
@@ -142,26 +144,25 @@ class IPTorrentsProvider(TorrentProvider):  # pylint: disable=too-many-instance-
                             # Filter unseeded torrent
                             if seeders < self.minseed or leechers < self.minleech:
                                 if mode != 'RSS':
-                                    logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
+                                    logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format
+                                               (title, seeders, leechers), logger.DEBUG)
                                 continue
 
-                            item = title, download_url, size, seeders, leechers
+                            item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': None}
                             if mode != 'RSS':
-                                logger.log(u"Found result: %s with %s seeders and %s leechers" % (title, seeders, leechers), logger.DEBUG)
+                                logger.log(u"Found result: {0} with {1} seeders and {2} leechers".format(title, seeders, leechers), logger.DEBUG)
 
                             items.append(item)
 
                 except Exception as e:
-                    logger.log(u"Failed parsing provider. Error: %r" % ex(e), logger.ERROR)
+                    logger.log(u"Failed parsing provider. Error: {0!r}".format(ex(e)), logger.ERROR)
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
 
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = IPTorrentsProvider()

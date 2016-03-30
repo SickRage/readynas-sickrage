@@ -43,7 +43,6 @@ class BitSnoopProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
         self.url = self.urls['index']
 
         self.public = True
-        self.ratio = None
         self.minseed = None
         self.minleech = None
 
@@ -55,15 +54,17 @@ class BitSnoopProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
         results = []
         for mode in search_strings:
             items = []
-            logger.log(u"Search Mode: %s" % mode, logger.DEBUG)
+            logger.log(u"Search Mode: {0}".format(mode), logger.DEBUG)
             for search_string in search_strings[mode]:
 
                 if mode != 'RSS':
-                    logger.log(u"Search string: %s " % search_string, logger.DEBUG)
+                    logger.log(u"Search string: {0}".format
+                               (search_string.decode("utf-8")), logger.DEBUG)
 
                 try:
-                    url = (self.urls['rss'], self.urls['search'] + search_string + '/s/d/1/?fmt=rss')[mode != 'RSS']
-                    data = self.get_url(url)
+                    search_url = (self.urls['rss'], self.urls['search'] + search_string + '/s/d/1/?fmt=rss')[mode != 'RSS']
+
+                    data = self.get_url(search_url, returns='text')
                     if not data:
                         logger.log(u"No data returned from provider", logger.DEBUG)
                         continue
@@ -73,7 +74,7 @@ class BitSnoopProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
                         continue
 
                     data = BeautifulSoup(data, 'html5lib')
-                    for item in data.findAll('item'):
+                    for item in data('item'):
                         try:
                             if not item.category.text.endswith(('TV', 'Anime')):
                                 continue
@@ -104,25 +105,24 @@ class BitSnoopProvider(TorrentProvider):  # pylint: disable=too-many-instance-at
                             # Filter unseeded torrent
                         if seeders < self.minseed or leechers < self.minleech:
                             if mode != 'RSS':
-                                logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format(title, seeders, leechers), logger.DEBUG)
+                                logger.log(u"Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})".format
+                                           (title, seeders, leechers), logger.DEBUG)
                             continue
 
-                        item = title, download_url, size, seeders, leechers, info_hash
+                        item = {'title': title, 'link': download_url, 'size': size, 'seeders': seeders, 'leechers': leechers, 'hash': info_hash}
                         if mode != 'RSS':
-                            logger.log(u"Found result: %s with %s seeders and %s leechers" % (title, seeders, leechers), logger.DEBUG)
+                            logger.log(u"Found result: {0} with {1} seeders and {2} leechers".format(title, seeders, leechers), logger.DEBUG)
 
                         items.append(item)
 
                 except (AttributeError, TypeError, KeyError, ValueError):
-                    logger.log(u"Failed parsing provider. Traceback: %r" % traceback.format_exc(), logger.ERROR)
+                    logger.log(u"Failed parsing provider. Traceback: {0!r}".format(traceback.format_exc()), logger.ERROR)
 
             # For each search mode sort all the items by seeders if available
-            items.sort(key=lambda tup: tup[3], reverse=True)
+            items.sort(key=lambda d: try_int(d.get('seeders', 0)), reverse=True)
             results += items
 
         return results
 
-    def seed_ratio(self):
-        return self.ratio
 
 provider = BitSnoopProvider()

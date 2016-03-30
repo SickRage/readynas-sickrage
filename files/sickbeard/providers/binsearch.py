@@ -18,8 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with SickRage. If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import re
-from urllib import urlencode
+from requests.compat import urljoin
 
 from sickbeard import logger, tvcache
 
@@ -30,18 +32,20 @@ class BinSearchProvider(NZBProvider):
 
     def __init__(self):
 
-        NZBProvider.__init__(self, "BinSearch")
+        NZBProvider.__init__(self, 'BinSearch')
+
+        self.url = 'https://www.binsearch.info'
+        self.urls = {'rss': urljoin(self.url, 'rss.php')}
 
         self.public = True
-        self.cache = BinSearchCache(self, min_time=30)  # only poll Binsearch every 30 minutes max
-        self.urls = {'base_url': 'https://www.binsearch.info/'}
-        self.url = self.urls['base_url']
         self.supports_backlog = False
+
+        self.cache = BinSearchCache(self, min_time=30)  # only poll Binsearch every 30 minutes max
 
 
 class BinSearchCache(tvcache.TVCache):
     def __init__(self, provider_obj, **kwargs):
-        kwargs.pop(u'search_params', None)  # does not use _getRSSData so strip param from kwargs...
+        kwargs.pop('search_params', None)  # does not use _getRSSData so strip param from kwargs...
         search_params = None  # ...and pass None instead
         tvcache.TVCache.__init__(self, provider_obj, search_params=search_params, **kwargs)
 
@@ -68,7 +72,6 @@ class BinSearchCache(tvcache.TVCache):
 
         title = item.get('description')
         if title:
-            title = u'' + title
             if self.descTitleStart.match(title):
                 title = self.descTitleStart.sub('', title)
                 title = self.descTitleEnd.sub('', title)
@@ -98,20 +101,19 @@ class BinSearchCache(tvcache.TVCache):
         self.setLastUpdate()
 
         cl = []
-        for group in ['alt.binaries.hdtv', 'alt.binaries.hdtv.x264', 'alt.binaries.tv', 'alt.binaries.tvseries', 'alt.binaries.teevee']:
-            url = self.provider.url + 'rss.php?'
-            urlArgs = {'max': 50, 'g': group}
+        for group in ['alt.binaries.hdtv', 'alt.binaries.hdtv.x264', 'alt.binaries.tv', 'alt.binaries.tvseries']:
+            search_params = {'max': 50, 'g': group}
+            data = self.getRSSFeed(self.provider.urls['rss'], search_params)['entries']
+            if not data:
+                logger.log('No data returned from provider', logger.DEBUG)
+                continue
 
-            url += urlencode(urlArgs)
-
-            logger.log(u"Cache update URL: %s " % url, logger.DEBUG)
-
-            for item in self.getRSSFeed(url)['entries'] or []:
+            for item in data:
                 ci = self._parseItem(item)
                 if ci:
                     cl.append(ci)
 
-        if len(cl) > 0:
+        if cl:
             cache_db_con = self._getDB()
             cache_db_con.mass_action(cl)
 

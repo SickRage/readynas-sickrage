@@ -1,3 +1,15 @@
+sickrage (2016.03.28-2) stable; urgency=medium
+
+  * Updating core packaging; updating and restarts work correctly now
+
+ -- Mhynlo <mhynlo@mhynlo.io>  Wed, 30 Mar 2016 00:04:59 -0700
+
+sickrage (5.1.2-1) stable; urgency=medium
+
+  * Updated the installation to adhere to NETGEAR's requirements
+
+ -- Mhynlo <mhynlo@mhynlo.io>  Sun, 20 Mar 2016 18:10:29 -0700
+
 sickrage (5.1.2) stable; urgency=low
 
   * Initial release for ReadyNAS OS

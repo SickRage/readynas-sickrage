@@ -21,6 +21,7 @@ from __future__ import unicode_literals
 
 import re
 import sickbeard
+from fnmatch import fnmatch
 
 dateFormat = '%Y-%m-%d'
 dateTimeFormat = '%Y-%m-%d %H:%M:%S'
@@ -117,18 +118,12 @@ def http_code_description(http_code):
     :return: The description of the provided ``http_code``
     """
 
-    if http_code in http_status_code:
-        description = http_status_code[http_code]
+    description = http_status_code.get(try_int(http_code))
 
-        if isinstance(description, list):
-            return '(%s)' % ', '.join(description)
+    if isinstance(description, list):
+        return '({0})'.format(', '.join(description))
 
-        return description
-
-    # TODO Restore logger import
-    # logger.log('Unknown HTTP status code %s. Please submit an issue' % http_code, logger.ERROR)
-
-    return None
+    return description
 
 
 def is_sync_file(filename):
@@ -141,7 +136,9 @@ def is_sync_file(filename):
     if isinstance(filename, (str, unicode)):
         extension = filename.rpartition('.')[2].lower()
 
-        return extension in sickbeard.SYNC_FILES.split(',') or filename.startswith('.syncthing')
+        return extension in sickbeard.SYNC_FILES.split(',') or \
+            filename.startswith('.syncthing') or \
+            any(fnmatch(filename, match) for match in sickbeard.SYNC_FILES.split(','))
 
     return False
 
@@ -180,7 +177,7 @@ def pretty_file_size(size, use_decimal=False, **kwargs):
     block = 1024. if not use_decimal else 1000.
     for unit in units:
         if remaining_size < block:
-            return '%3.2f %s' % (remaining_size, unit)
+            return '{0:3.2f} {1}'.format(remaining_size, unit)
         remaining_size /= block
     return size
 
@@ -211,9 +208,9 @@ def convert_size(size, default=None, use_decimal=False, **kwargs):
             scalar, units = size_tuple[0], size_tuple[1:]
             units = units[0].upper() if units else default_units
         else:
-            regex_units = re.search(r'(\w+)', size, re.IGNORECASE)
-            units = regex_units.group() if regex_units else default_units
-            scalar = size.strip(units)
+            regex_scalar = re.search(r'([\d. ]+)', size, re.IGNORECASE)
+            scalar = regex_scalar.group() if regex_scalar else -1
+            units = size.strip(scalar) if scalar != -1 else 'B'
 
         scalar = float(scalar)
         scalar *= (1024 if not use_decimal else 1000) ** scale.index(units)
@@ -267,7 +264,7 @@ def replace_extension(filename, new_extension):
         basename, _, _ = filename.rpartition('.')
 
         if basename:
-            return '%s.%s' % (basename, new_extension)
+            return '{0}.{1}'.format(basename, new_extension)
 
     return filename
 
@@ -322,4 +319,3 @@ def episode_num(season=None, episode=None, **kwargs):
     elif numbering == 'absolute':
         if not (season and episode) and (season or episode):
             return '{0:0>3}'.format(season or episode)
-

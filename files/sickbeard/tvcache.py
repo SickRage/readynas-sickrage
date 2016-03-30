@@ -20,15 +20,12 @@
 import time
 import datetime
 import itertools
-import urllib2
 
 import sickbeard
 from sickbeard import db
 from sickbeard import logger
-from sickbeard.common import Quality
 from sickbeard.rssfeeds import getFeed
 from sickbeard import show_name_helpers
-from sickrage.helper.encoding import ss
 from sickrage.helper.exceptions import AuthException, ex
 from sickrage.show.Show import Show
 from sickbeard.name_parser.parser import NameParser, InvalidNameException, InvalidShowException
@@ -94,15 +91,15 @@ class TVCache(object):
             cache_db_con.action("DELETE FROM [" + self.providerID + "] WHERE 1")
 
     def _get_title_and_url(self, item):
-        return self.provider._get_title_and_url(item)
+        return self.provider._get_title_and_url(item)  # pylint:disable=protected-access
 
     def _getRSSData(self):
         return {u'entries': self.provider.search(self.search_params)} if self.search_params else None
 
-    def _checkAuth(self, data):
+    def _checkAuth(self, data):  # pylint:disable=unused-argument, no-self-use
         return True
 
-    def _checkItemAuth(self, title, url):
+    def _checkItemAuth(self, title, url):  # pylint:disable=unused-argument, no-self-use
         return True
 
     def updateCache(self):
@@ -125,7 +122,7 @@ class TVCache(object):
                     if ci is not None:
                         cl.append(ci)
 
-                if len(cl) > 0:
+                if cl:
                     cache_db_con = self._getDB()
                     cache_db_con.mass_action(cl)
 
@@ -134,27 +131,17 @@ class TVCache(object):
         except Exception as e:
             logger.log(u"Error while searching " + self.provider.name + ", skipping: " + repr(e), logger.DEBUG)
 
-    def getRSSFeed(self, url):
-        handlers = []
+    def getRSSFeed(self, url, params=None):
+        if self.provider.login():
+            return getFeed(url, params=params, request_hook=self.provider.get_url)
+        return {'entries': []}
 
-        if sickbeard.PROXY_SETTING:
-            logger.log(u"Using global proxy for url: " + url, logger.DEBUG)
-            scheme, address = urllib2.splittype(sickbeard.PROXY_SETTING)
-            address = sickbeard.PROXY_SETTING if scheme else 'http://' + sickbeard.PROXY_SETTING
-            handlers = [urllib2.ProxyHandler({'http': address, 'https': address})]
-            self.provider.headers.update({'Referer': address})
-        elif 'Referer' in self.provider.headers:
-            self.provider.headers.pop('Referer')
-
-        return getFeed(
-            url,
-            request_headers=self.provider.headers,
-            handlers=handlers)
-
-    def _translateTitle(self, title):
+    @staticmethod
+    def _translateTitle(title):
         return u'' + title.replace(' ', '.')
 
-    def _translateLinkURL(self, url):
+    @staticmethod
+    def _translateLinkURL(url):
         return url.replace('&amp;', '&')
 
     def _parseItem(self, item):
@@ -166,7 +153,7 @@ class TVCache(object):
             title = self._translateTitle(title)
             url = self._translateLinkURL(url)
 
-            #logger.log(u"Attempting to add item to cache: " + title, logger.DEBUG)
+            # logger.log(u"Attempting to add item to cache: " + title, logger.DEBUG)
             return self._addCacheEntry(title, url)
 
         else:
@@ -207,18 +194,22 @@ class TVCache(object):
             toDate = datetime.datetime.today()
 
         cache_db_con = self._getDB()
-        cache_db_con.upsert("lastUpdate",
-                    {'time': int(time.mktime(toDate.timetuple()))},
-                    {'provider': self.providerID})
+        cache_db_con.upsert(
+            "lastUpdate",
+            {'time': int(time.mktime(toDate.timetuple()))},
+            {'provider': self.providerID}
+        )
 
     def setLastSearch(self, toDate=None):
         if not toDate:
             toDate = datetime.datetime.today()
 
         cache_db_con = self._getDB()
-        cache_db_con.upsert("lastSearch",
-                    {'time': int(time.mktime(toDate.timetuple()))},
-                    {'provider': self.providerID})
+        cache_db_con.upsert(
+            "lastSearch",
+            {'time': int(time.mktime(toDate.timetuple()))},
+            {'provider': self.providerID}
+        )
 
     lastUpdate = property(_getLastUpdate)
     lastSearch = property(_getLastSearch)
@@ -249,13 +240,9 @@ class TVCache(object):
                 showObj = Show.find(sickbeard.showList, indexer_id)
 
             try:
-                myParser = NameParser(showObj=showObj)
-                parse_result = myParser.parse(name)
-            except InvalidNameException:
-                logger.log(u"Unable to parse the filename " + name + " into a valid episode", logger.DEBUG)
-                return None
-            except InvalidShowException:
-                logger.log(u"Unable to parse the filename " + name + " into a valid show", logger.DEBUG)
+                parse_result = NameParser(showObj=showObj).parse(name)
+            except (InvalidNameException, InvalidShowException) as error:
+                logger.log(u"{0}".format(error), logger.DEBUG)
                 return None
 
             if not parse_result or not parse_result.series_name:
@@ -267,7 +254,7 @@ class TVCache(object):
 
         if season and episodes:
             # store episodes as a seperated string
-            episodeText = "|" + "|".join(map(str, episodes)) + "|"
+            episodeText = "|" + "|".join({str(episode) for episode in episodes if episode}) + "|"
 
             # get the current timestamp
             curTimestamp = int(time.mktime(datetime.datetime.today().timetuple()))
@@ -275,7 +262,7 @@ class TVCache(object):
             # get quality of release
             quality = parse_result.quality
 
-            name = ss(name)
+            assert isinstance(name, unicode)
 
             # get release group
             release_group = parse_result.release_group
@@ -291,7 +278,7 @@ class TVCache(object):
 
     def searchCache(self, episode, manualSearch=False, downCurQuality=False):
         neededEps = self.findNeededEpisodes(episode, manualSearch, downCurQuality)
-        return neededEps[episode] if episode in neededEps else []
+        return neededEps.get(episode, [])
 
     def listPropers(self, date=None):
         cache_db_con = self._getDB()
@@ -303,14 +290,14 @@ class TVCache(object):
         propers_results = cache_db_con.select(sql)
         return [x for x in propers_results if x['indexerid']]
 
-    def findNeededEpisodes(self, episode, manualSearch=False, downCurQuality=False):
+    def findNeededEpisodes(self, episode, manualSearch=False, downCurQuality=False):  # pylint:disable=too-many-locals, too-many-branches
         neededEps = {}
         cl = []
 
         cache_db_con = self._getDB()
         if not episode:
             sql_results = cache_db_con.select("SELECT * FROM [" + self.providerID + "]")
-        elif type(episode) != list:
+        elif not isinstance(episode, list):
             sql_results = cache_db_con.select(
                 "SELECT * FROM [" + self.providerID + "] WHERE indexerid = ? AND season = ? AND episodes LIKE ?",
                 [episode.show.indexerid, episode.season, "%|" + str(episode.episode) + "|%"])

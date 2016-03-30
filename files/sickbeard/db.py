@@ -29,6 +29,7 @@ import sickbeard
 from sickbeard import logger
 from sickrage.helper.encoding import ek
 from sickrage.helper.exceptions import ex
+from sqlite3 import OperationalError
 
 db_cons = {}
 db_locks = {}
@@ -43,7 +44,7 @@ def dbFilename(filename="sickbeard.db", suffix=None):
     @return: the correct location of the database file.
     """
     if suffix:
-        filename = "%s.%s" % (filename, suffix)
+        filename = "{0}.{1}".format(filename, suffix)
     return ek(os.path.join, sickbeard.DATA_DIR, filename)
 
 
@@ -74,6 +75,8 @@ class DBConnection(object):
             with db_locks[self.filename]:
                 self._set_row_factory()
 
+        except OperationalError:
+            logger.log(u'Please check your database owner/permissions: {0}'.format(dbFilename(self.filename, self.suffix)), logger.WARNING)
         except Exception as e:
             logger.log(u"DB error: " + ex(e), logger.ERROR)
             raise
@@ -133,7 +136,7 @@ class DBConnection(object):
         try:
             if self.hasTable('db_version'):
                 result = self.select("SELECT db_version FROM db_version")
-        except:
+        except Exception:
             return 0
 
         if result:
@@ -152,7 +155,7 @@ class DBConnection(object):
         try:
             if self.hasColumn('db_version', 'db_minor_version'):
                 result = self.select("SELECT db_minor_version FROM db_version")
-        except:
+        except Exception:
             return 0
 
         if result:
@@ -168,7 +171,7 @@ class DBConnection(object):
         """
         return self.check_db_major_version(), self.check_db_minor_version()
 
-    def mass_action(self, querylist=[], logTransaction=False, fetchall=False):
+    def mass_action(self, querylist=None, logTransaction=False, fetchall=False):
         """
         Execute multiple queries
 
@@ -177,8 +180,11 @@ class DBConnection(object):
         :param fetchall: Boolean, when using a select query force returning all results
         :return: list of results
         """
+
+        assert hasattr(querylist, '__iter__'), 'You passed a non-iterable to mass_action: {0!r}'.format(querylist)
+
         # remove None types
-        querylist = [i for i in querylist if i is not None and len(i)]
+        querylist = [i for i in querylist if i]
 
         sql_results = []
         attempt = 0
@@ -331,7 +337,7 @@ class DBConnection(object):
         :param tableName: name of table
         :return: array of name/type info
         """
-        sql_results = self.select("PRAGMA table_info(`%s`)" % tableName)
+        sql_results = self.select("PRAGMA table_info(`{0}`)".format(tableName))
         columns = {}
         for column in sql_results:
             columns[column['name']] = {'type': column['type']}
@@ -348,7 +354,7 @@ class DBConnection(object):
         try:
             # Just revert to the old code for now, until we can fix unicode
             return unicode(x, 'utf-8')
-        except:
+        except Exception:
             return unicode(x, sickbeard.SYS_ENCODING, errors="ignore")
 
     @staticmethod
@@ -377,7 +383,7 @@ class DBConnection(object):
         """
         return column in self.tableInfo(tableName)
 
-    def addColumn(self, table, column, type="NUMERIC", default=0):
+    def addColumn(self, table, column, col_type="NUMERIC", default=0):
         """
         Adds a column to a table, default column type is NUMERIC
         TODO: Make this return true/false on success/failure
@@ -387,15 +393,15 @@ class DBConnection(object):
         :param type: Column type to add
         :param default: Default value for column
         """
-        self.action("ALTER TABLE [%s] ADD %s %s" % (table, column, type))
-        self.action("UPDATE [%s] SET %s = ?" % (table, column), (default,))
+        self.action("ALTER TABLE [{0}] ADD {1} {2}".format(table, column, col_type))
+        self.action("UPDATE [{0}] SET {1} = ?".format(table, column), (default,))
 
 
 def sanityCheckDatabase(connection, sanity_check):
     sanity_check(connection).check()
 
 
-class DBSanityCheck(object):
+class DBSanityCheck(object):  # pylint: disable=too-few-public-methods
     def __init__(self, connection):
         self.connection = connection
 
@@ -439,7 +445,7 @@ def restoreDatabase(version):
 
 def _processUpgrade(connection, upgradeClass):
     instance = upgradeClass(connection)
-    logger.log(u"Checking " + prettyName(upgradeClass.__name__) + " database upgrade", logger.DEBUG)
+    # logger.log(u"Checking " + prettyName(upgradeClass.__name__) + " database upgrade", logger.DEBUG)
     if not instance.test():
         logger.log(u"Database upgrade required: " + prettyName(upgradeClass.__name__), logger.DEBUG)
         try:
@@ -449,8 +455,8 @@ def _processUpgrade(connection, upgradeClass):
             raise
 
         logger.log(upgradeClass.__name__ + " upgrade completed", logger.DEBUG)
-    else:
-        logger.log(upgradeClass.__name__ + " upgrade not required", logger.DEBUG)
+    # else:
+    #     logger.log(upgradeClass.__name__ + " upgrade not required", logger.DEBUG)
 
     for upgradeSubClass in upgradeClass.__subclasses__():
         _processUpgrade(connection, upgradeSubClass)
@@ -467,9 +473,9 @@ class SchemaUpgrade(object):
     def hasColumn(self, tableName, column):
         return column in self.connection.tableInfo(tableName)
 
-    def addColumn(self, table, column, type="NUMERIC", default=0):
-        self.connection.action("ALTER TABLE [%s] ADD %s %s" % (table, column, type))
-        self.connection.action("UPDATE [%s] SET %s = ?" % (table, column), (default,))
+    def addColumn(self, table, column, col_type="NUMERIC", default=0):
+        self.connection.action("ALTER TABLE [{0}] ADD {1} {2}".format(table, column, col_type))
+        self.connection.action("UPDATE [{0}] SET {1} = ?".format(table, column), (default,))
 
     def checkDBVersion(self):
         return self.connection.checkDBVersion()
