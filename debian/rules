@@ -18,7 +18,7 @@ DESTDIR = $(CURDIR)/debian/sickrage
 
 override_dh_install:
 	cp -R $(CURDIR)/rn-files/* ${DESTDIR}/apps/sickrage
-	mkdir $(CURDIR)/git-files
+	mkdir -p $(CURDIR)/git-files
 	if [ -d ./git-files/sickrage ]; then git --git-dir=./git-files/.git pull; fi
 	if [ ! -d ./git-files/sickrage ]; then git clone https://github.com/SickRage/SickRage.git ./git-files; fi
 	cp -R $(CURDIR)/git-files/* ${DESTDIR}/apps/sickrage
