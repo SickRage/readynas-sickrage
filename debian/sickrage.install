@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+rn-files/* apps/sickrage
+git-files/* apps/sickrage
