@@ -2,13 +2,11 @@
 Description=Service for sickrage app
 
 [Service]
-ExecStart=/usr/bin/python /apps/sickrage/SickBeard.py -q --daemon --nolaunch --datadir=/apps/sickrage/app-config --config=/apps/sickrage/app-config/config.ini --pidfile=/var/run/sickrage.pid
-Type=forking
+ExecStart=/usr/bin/python /apps/sickrage/SickBeard.py --nolaunch --datadir=/apps/sickrage/app-config --config=/apps/sickrage/app-config/config.ini
 Restart=always
 Nice=18
 User=admin
 Group=admin
-PIDFile=/var/run/sickrage.pid
 
 [Install]
 WantedBy=multi-user.target
