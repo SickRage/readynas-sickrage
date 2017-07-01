@@ -1,0 +1,4 @@
+sickrage: non-standard-toplevel-dir apps/
+sickrage: file-in-unusual-dir apps/sickrage/*
+sickrage: script-not-executable apps/sickrage/*
+sickrage: executable-not-elf-or-script apps/sickrage/*

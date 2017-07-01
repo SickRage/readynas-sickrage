@@ -1,11 +1,12 @@
 <Application resource-id="sickrage"><!-- 'resource-id' must be AppName -->
+  <Category>APP_CAT_PRODUCTIVITY</Category>
   <Name>SickRage</Name>
   <Author>Mhynlo</Author>
-  <Version>2016.09.10-1</Version>
+  <Version>2017.06.04-0</Version>
   <RequireReboot>0</RequireReboot>
   <ConfigURL/>
-  <LaunchURL>http://localhost:8081/</LaunchURL>
-  <ReservePort>8081</ReservePort>
+  <LaunchURL>http://localhost:6765/</LaunchURL>
+  <ReservePort>6765</ReservePort>
   <InfoURL>https://sickrage.github.io/</InfoURL>
   <DebianPackage>sickrage</DebianPackage>
   <ServiceName>fvapp-sickrage.service</ServiceName>

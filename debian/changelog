@@ -1,3 +1,10 @@
+sickrage (2017.06.04-0) UNRELEASED; urgency=medium
+
+  * Upstream update
+  * Update port to prevent confict with another ReadyNAS App
+
+ -- Mhynlo <mhynlo@mhynlo.io>  Thu, 22 Jun 2017 18:29:13 -0700
+
 sickrage (2016.09.10-1) stable; urgency=medium
 
   * fixed auto start on bootup and added logs to systemd 
