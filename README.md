@@ -1,13 +1,9 @@
-###rn-sickrage
+### ReadyNAS SickRage
+**SickRage** ReadyNAS app is available from the [ReadyNAS App Store](apps.readynas.com).
+
+Early releases will be available from the [GitHub Releases](https://github.com/SickRage/readynas-sickrage/releases).
 
 
-There is a release available for download. It is able to install and run with no reported issues to the app.
-
-
-
-
-####Build process:
+#### Build process:
 
 `debuild -us -uc`
-
-*Note: Requires git installed for build correctly.*

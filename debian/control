@@ -2,12 +2,19 @@ Source: sickrage
 Section: contrib
 Priority: extra
 Maintainer: Mhynlo <mhynlok@gmail.com>
-Build-Depends: debhelper (>= 8.0.0)
+Build-Depends: debhelper (>= 8.0.0),
+               git
 Standards-Version: 3.9.6
 Homepage: https://sickrage.github.io/
 
 Package: sickrage
 Architecture: all
-Depends: ${shlibs:Depends}, ${misc:Depends}, readynasos (>= 6.1.0), php5-sqlite, python (>= 2.7.3-4+deb7u1), python-pip, git
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         readynasos (>= 6.1.0),
+         php5-sqlite,
+         python (>= 2.7.3-4+deb7u1),
+         python-pip,
+         git
 Description: SickRage
  Searches TheTVDB for shows.

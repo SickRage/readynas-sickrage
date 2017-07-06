@@ -1,0 +1,28 @@
+language: python
+
+python:
+  - 2.7.9
+
+dist: jessie
+
+install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y debhelper dh-autoreconf devscripts
+
+script:
+    - debuild -i -us -uc -b
+
+deploy:
+  provider: releases
+  api_key:
+    secure: LRPkd7dNi1EmwuGs72A4Z9Cuurg7bVvnt8yBapetNgLXah5qeRTkZJFkn6vWVmVZJkGuSfGlvjZyqDltQIQQv5uORKF2zOmGTcq4OkLAPzzsEU0vvdweQ28eo7k3thRwm6q6Kpb5omfSLOViZ7Upg5n0dbeQJhaG+RNuNgFohvgc/9xb41Ppw3Bj8pSsCpR1Exo7RFw7T2UEKBjv1J/yOU/D74/9MWjRu3WUdC7BuD7mLTPgjy4gU/A4c/hDnT25UvV2Z1GwyNFcVYBtPxnqpXrwNe2PDItI0J6AfVhoWCw1ZXCr9chaAEpXxo8pGmV3qHNSDt4szolgQGcfkj9zTSs8glUZVNIbO/U7tAtiGWIAfJybYFUzJVfWEQWbDg3bUYFrU88LdYk6ttgzzhXCtY19blkxtBwdk6pqlqJSzgWW9J0SdDi9CJsD0s2VYquTCvTzoRFIwQ/nhYTuflPgO92QbdYd3MJzG0lASqZzU+2/vyvpj3pHlYI71vDOt6u4RgGuvohjFUkrFLQ7lHxNVmcCOMZFJtcT1v4qLcihRxRLhd7hNp4Jw6s6i9JCQHO8eL7bMsyv8bDJ/uw1BN0OoDPn4bVBXcNLhSZztZNXX+m6tTHsmjE1hU4JAWoGDAH51Cz5m/2BZACqeO302ZBMUgsXdiIU2/tO88E59qXTHa8=
+  file_glob: true
+  file: sickrage_*_all.deb
+  skip_cleanup: true
+  on:
+    tags: true
+
+notifications:
+  email:
+    on_success: change
+    on_failure: change
