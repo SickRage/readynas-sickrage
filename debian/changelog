@@ -1,4 +1,10 @@
-sickrage (2017.06.04-0) UNRELEASED; urgency=medium
+sickrage (2017.12.09-1) stable; urgency=medium
+
+  * Fixed a uninstall issue with newer RNOS.
+
+ -- Mhynlo <mhynlo@bmhynlo.io>  Wed, 10 Jan 2018 17:27:18 -0800
+
+sickrage (2017.06.04-0) stable; urgency=medium
 
   * Upstream update
   * Update port to prevent confict with another ReadyNAS App
