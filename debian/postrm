@@ -20,9 +20,10 @@ case "$1" in
     purge)
        find /apps/sickrage/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
        find /apps/sickrage/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
-       rm /apps/sickrage/.localapp
+       if [ -d "/apps/sickrage/.localapp" ]; then
+         rm /apps/sickrage/.localapp
+       fi
 
-       event_push app readynasd '<delete-s resource-type="LocalApp" resource-id="LocalApp"><LocalApp appname="sickrage" success="1" reboot="0"/></delete-s>' 0 0
        ;;
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
        ;;
