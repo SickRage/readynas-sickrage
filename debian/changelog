@@ -1,3 +1,10 @@
+sickrage (2018.02.17-ml0) stable; urgency=medium
+
+  * Upstream update.
+  * App removal fix; added check for a file that may not exist before executing removal.
+
+ -- Mhynlo <mhynlo@mhynlo.io>  Sun, 18 Feb 2018 20:38:43 -0800
+
 sickrage (2017.12.09-1) stable; urgency=medium
 
   * Fixed a uninstall issue with newer RNOS.
@@ -13,7 +20,7 @@ sickrage (2017.06.04-0) stable; urgency=medium
 
 sickrage (2016.09.10-1) stable; urgency=medium
 
-  * fixed auto start on bootup and added logs to systemd 
+  * fixed auto start on bootup and added logs to systemd
 
  -- Mhynlo <mhynlo@mhynlo.io>  Thu, 15 Sep 2016 23:03:13 -0700
 

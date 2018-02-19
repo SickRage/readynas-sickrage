@@ -2,7 +2,7 @@
   <Category>APP_CAT_PRODUCTIVITY</Category>
   <Name>SickRage</Name>
   <Author>Mhynlo</Author>
-  <Version>2017.12.09-1</Version>
+  <Version>2018.02.17-ml0</Version>
   <RequireReboot>0</RequireReboot>
   <ConfigURL/>
   <LaunchURL>http://localhost:6765/</LaunchURL>
