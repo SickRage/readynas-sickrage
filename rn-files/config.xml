@@ -1,14 +1,14 @@
-<Application resource-id="sickrage"><!-- 'resource-id' must be AppName -->
+<Application resource-id="sickchill"><!-- 'resource-id' must be AppName -->
   <Category>APP_CAT_PRODUCTIVITY</Category>
-  <Name>SickRage</Name>
+  <Name>SickChill</Name>
   <Author>Mhynlo</Author>
-  <Version>2018.02.17-ml0</Version>
+  <Version>2018.10.15-ml0</Version>
   <RequireReboot>0</RequireReboot>
   <ConfigURL/>
-  <LaunchURL>http://localhost:6765/</LaunchURL>
-  <ReservePort>6765</ReservePort>
-  <InfoURL>https://sickrage.github.io/</InfoURL>
-  <DebianPackage>sickrage</DebianPackage>
-  <ServiceName>fvapp-sickrage.service</ServiceName>
+  <LaunchURL>http://localhost:6766/</LaunchURL>
+  <ReservePort>6766</ReservePort>
+  <InfoURL>https://sickchill.github.io/</InfoURL>
+  <DebianPackage>sickchill</DebianPackage>
+  <ServiceName>fvapp-sickchill.service</ServiceName>
   <Description lang="en-us">Automatic Video Library Manager for TV Shows.</Description>
 </Application>

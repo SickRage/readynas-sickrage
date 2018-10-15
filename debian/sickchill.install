@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+rn-files/* apps/sickchill
+git-files/* apps/sickchill

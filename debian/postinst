@@ -1,5 +1,5 @@
 #!/bin/sh
-# postinst script for sickrage
+# postinst script for sickchill
 #
 # see: dh_installdeb(1)
 
@@ -20,9 +20,10 @@ set -e
 
 case "$1" in
     configure)
-    chown -R admin:admin /apps/sickrage
-    
-    event_push app readynasd '<add-s resource-type="LocalApp" resource-id="LocalApp"><LocalApp appname="sickrage" success="1"/></add-s>' 0 0
+    chown -R admin:admin /apps/sickchill
+    if [ -d "/apps/sickrage/app-config/" ] && [ ! -f /apps/sickchill/app-config/config.ini ]; then
+        cp -r /apps/sickrage/app-config/* /apps/sickchill/app-config/
+    fi
     ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;
@@ -36,7 +37,7 @@ esac
 ###
 # Enable service
 ###
-rn_nml -S sickrage
+rn_nml -S sickchill
 
 
 # dh_installdeb will replace this with shell code automatically
