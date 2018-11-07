@@ -1,13 +1,13 @@
-Source: sickrage
+Source: sickchill
 Section: contrib
 Priority: extra
 Maintainer: Mhynlo <mhynlok@gmail.com>
 Build-Depends: debhelper (>= 8.0.0),
                git
 Standards-Version: 3.9.6
-Homepage: https://sickrage.github.io/
+Homepage: https://sickchill.github.io/
 
-Package: sickrage
+Package: sickchill
 Architecture: all
 Depends: ${shlibs:Depends},
          ${misc:Depends},
@@ -16,5 +16,5 @@ Depends: ${shlibs:Depends},
          python (>= 2.7.3-4+deb7u1),
          python-pip,
          git
-Description: SickRage
+Description: SickChill
  Searches TheTVDB for shows.

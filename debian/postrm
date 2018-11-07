@@ -1,5 +1,5 @@
 #! /bin/sh
-# postrm script for sickrage
+# postrm script for sickchill
 #
 # see: dh_installdeb(1)
 
@@ -18,13 +18,13 @@ set -e
 
 case "$1" in
     purge)
-       rm -R /apps/sickrage/
+       rm -R /apps/sickchill/
        ;;
     remove)
-       find /apps/sickrage/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
-       find /apps/sickrage/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
-       if [ -f "/apps/sickrage/.localapp" ]; then
-         rm /apps/sickrage/.localapp
+       find /apps/sickchill/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
+       find /apps/sickchill/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
+       if [ -f "/apps/sickchill/.localapp" ]; then
+         rm /apps/sickchill/.localapp
        fi
        ;;
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)

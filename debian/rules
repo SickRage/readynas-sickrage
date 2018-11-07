@@ -11,14 +11,14 @@
 export DH_ALWAYS_EXCLUDE=.git
 
 
-DESTDIR = $(CURDIR)/debian/sickrage
+DESTDIR = $(CURDIR)/debian/sickchill
 
 %:
 	dh $@
 
 override_dh_install:
-	cp -R $(CURDIR)/rn-files/* ${DESTDIR}/apps/sickrage
+	cp -R $(CURDIR)/rn-files/* ${DESTDIR}/apps/sickchill
 	mkdir -p $(CURDIR)/git-files
-	if [ -d ./git-files/sickrage ]; then git --git-dir=./git-files/.git pull; fi
-	if [ ! -d ./git-files/sickrage ]; then git clone https://github.com/SickRage/SickRage.git ./git-files; fi
-	cp -R $(CURDIR)/git-files/* ${DESTDIR}/apps/sickrage
+	if [ -d ./git-files/sickchill ]; then git --git-dir=./git-files/.git pull; fi
+	if [ ! -d ./git-files/sickchill ]; then git clone https://github.com/sickchill/sickchill.git ./git-files; fi
+	cp -R $(CURDIR)/git-files/* ${DESTDIR}/apps/sickchill

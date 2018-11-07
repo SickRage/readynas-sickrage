@@ -17,8 +17,8 @@ set -e
 
 case "$1" in
     remove|upgrade|deconfigure)
-        systemctl stop fvapp-sickrage.service
-        systemctl disable fvapp-sickrage.service || true
+        systemctl stop fvapp-sickchill.service
+        systemctl disable fvapp-sickchill.service || true
         ;;
     failed-upgrade)
         ;;

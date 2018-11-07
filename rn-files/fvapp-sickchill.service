@@ -1,0 +1,12 @@
+[Unit]
+Description=Service for sickchill app
+
+[Service]
+ExecStart=/usr/bin/python /apps/sickchill/SickBeard.py --nolaunch --datadir=/apps/sickchill/app-config --config=/apps/sickchill/app-config/config.ini --port=6766
+Restart=always
+Nice=18
+User=admin
+Group=admin
+
+[Install]
+WantedBy=multi-user.target
