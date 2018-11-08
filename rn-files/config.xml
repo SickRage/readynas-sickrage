@@ -2,7 +2,7 @@
   <Category>APP_CAT_PRODUCTIVITY</Category>
   <Name>SickChill</Name>
   <Author>Mhynlo</Author>
-  <Version>2018.10.15-ml0</Version>
+  <Version>2018.11.07-ml0</Version>
   <RequireReboot>0</RequireReboot>
   <ConfigURL/>
   <LaunchURL>http://localhost:6766/</LaunchURL>
