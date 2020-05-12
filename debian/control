@@ -16,5 +16,4 @@ Depends: ${shlibs:Depends},
          python (>= 2.7.3-4+deb7u1),
          python-pip,
          git
-Description: SickChill
- Searches TheTVDB for shows.
+Description: Searches TheTVDB for shows.
