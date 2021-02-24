@@ -2,3 +2,20 @@ sickchill: non-standard-toplevel-dir apps/
 sickchill: file-in-unusual-dir apps/sickchill/*
 sickchill: script-not-executable apps/sickchill/*
 sickchill: executable-not-elf-or-script apps/sickchill/*
+
+sickchill: duplicate-font-file apps/sickchill/sickchill/gui/slick/css/fonts/*
+sickchill: duplicate-font-file apps/sickchill/sickchill/gui/slick/fonts/*
+
+sickchill: source-contains-prebuilt-windows-binary git-files/lib3/setuptools/*
+
+sickchill: maintainer-script-should-not-use-recursive-chown-or-chmod
+sickchill: maintainer-script-calls-systemctl
+sickchill: missing-depends-on-sensible-utils apps/sickchill/lib3/*
+
+sickchill: source-is-missing git-files/sickchill/gui/slick/js/*.min.js
+sickchill: source-is-missing git-files/sickchill/gui/slick/js/lib/*.min.js
+
+
+sickchill: truetype-font-prohibits-installable-embedding [edit only] apps/sickchill/sickchill/gui/slick/css/fonts/ExtraBold/OpenSans-ExtraBold.ttf
+sickchill: truetype-font-prohibits-installable-embedding [edit only] apps/sickchill/sickchill/gui/slick/css/fonts/Semibold/OpenSans-Semibold.ttf
+sickchill: truetype-font-prohibits-installable-embedding [preview/print only] apps/sickchill/sickchill/gui/slick/fonts/glyphicons-halflings-regular.ttf

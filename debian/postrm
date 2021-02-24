@@ -18,22 +18,20 @@ set -e
 
 case "$1" in
     purge)
-       rm -R /apps/sickchill/
-       ;;
+        rm -R /apps/sickchill/
+        ;;
     remove)
-       find /apps/sickchill/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
-       find /apps/sickchill/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
-       if [ -f "/apps/sickchill/.localapp" ]; then
-         rm /apps/sickchill/.localapp
-       fi
-       ;;
+        find /apps/sickchill/* -maxdepth 0 -type 'f' | grep -v "app-config" | xargs rm -f
+        find /apps/sickchill/* -maxdepth 0 -type 'd' | grep -v "app-config" | xargs rm -rf
+        if [ -f "/apps/sickchill/.localapp" ]; then
+          rm /apps/sickchill/.localapp
+        fi
+        ;;
     upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-       ;;
-
+        ;;
     *)
         echo "postrm called with unknown argument \`$1'" >&2
         exit 0
-
 esac
 
 # dh_installdeb will replace this with shell code automatically

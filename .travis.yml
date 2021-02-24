@@ -1,9 +1,9 @@
 language: python
 
 python:
-  - 2.7.9
+  - 3.6.9
 
-dist: jessie
+dist: focal
 
 install:
   - sudo apt-get -qq update

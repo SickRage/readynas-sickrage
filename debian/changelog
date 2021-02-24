@@ -1,23 +1,30 @@
-sickchill (2020.05.12-ml0) UNRELEASED; urgency=medium
+sickchill (2021.02.24) UNRELEASED; urgency=medium
+
+  * Upstream Update
+  * Switch to python3.6+
+
+ -- miigotu <miigotu@gmail.com>  Wed, 24 Feb 2021 01:05:16 -0500
+
+sickchill (2020.05.12) UNRELEASED; urgency=medium
 
   * Upstream Update
 
  -- miigotu <miigotu@gmail.com>  Tue, 12 May 2020 05:06:16 -0400
 
-sickchill (2018.11.07-ml0) stable; urgency=medium
+sickchill (2018.11.07) stable; urgency=medium
 
   * Upstream update
   * Updated logo within app
 
  -- Mhynlo <mhynlo@baneling.mhynlo>  Thu, 08 Nov 2018 13:26:06 -0800
 
-sickchill (2018.10.15-ml0) stable; urgency=medium
+sickchill (2018.10.15) stable; urgency=medium
 
   * Migration from sickrage to sickchill.
 
  -- Mhynlo <mhynlo@mhynlo.io>  Mon, 15 Oct 2018 14:25:11 -0700
 
-sickchill (2018.02.17-ml0) stable; urgency=medium
+sickchill (2018.02.17) stable; urgency=medium
 
   * Upstream update.
   * App removal fix; added check for a file that may not exist before executing removal.
