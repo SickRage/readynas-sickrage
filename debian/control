@@ -1,10 +1,11 @@
 Source: sickchill
-Section: contrib
-Priority: extra
-Maintainer: Mhynlo <mhynlok@gmail.com>
-Build-Depends: debhelper (>= 8.0.0),
+Section: contrib/python
+Priority: optional
+Maintainer: Dustyn Gibson <miigotu@gmail.com>
+Build-Depends: debhelper (>= 11~),
+               debhelper-compat (=12),
                git
-Standards-Version: 3.9.6
+Standards-Version: 4.5.0
 Homepage: https://sickchill.github.io/
 
 Package: sickchill
@@ -13,7 +14,7 @@ Depends: ${shlibs:Depends},
          ${misc:Depends},
          readynasos (>= 6.1.0),
          php5-sqlite,
-         python (>= 2.7.3-4+deb7u1),
-         python-pip,
+         python3 (>= 3.6),
          git
-Description: Searches TheTVDB for shows.
+Description: Searches torrent and nzb providers for shows.
+ Manage your whole workflow and get episodes as soon as they are available.

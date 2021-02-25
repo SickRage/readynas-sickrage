@@ -2,7 +2,7 @@
 Description=Service for sickchill app
 
 [Service]
-ExecStart=/usr/bin/python /apps/sickchill/SickBeard.py --nolaunch --datadir=/apps/sickchill/app-config --config=/apps/sickchill/app-config/config.ini --port=6766
+ExecStart=$(command -v python3.9 || command -v python3.8 || command -v python3.7 || command -v python3.6) /apps/sickchill/SickChill.py --nolaunch --datadir=/apps/sickchill/app-config --config=/apps/sickchill/app-config/config.ini --port=6766
 Restart=always
 Nice=18
 User=admin

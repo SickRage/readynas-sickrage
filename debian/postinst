@@ -20,14 +20,13 @@ set -e
 
 case "$1" in
     configure)
-    chown -R admin:admin /apps/sickchill
-    if [ -d "/apps/sickrage/app-config/" ] && [ ! -f /apps/sickchill/app-config/config.ini ]; then
-        cp -r /apps/sickrage/app-config/* /apps/sickchill/app-config/
-    fi
-    ;;
+        chown -R admin:admin /apps/sickchill
+        if [ -d "/apps/sickrage/app-config/" ] && [ ! -f /apps/sickchill/app-config/config.ini ]; then
+            cp -r /apps/sickrage/app-config/* /apps/sickchill/app-config/
+        fi
+        ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;
-
     *)
         echo "postinst called with unknown argument \`$1'" >&2
         exit 1
