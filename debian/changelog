@@ -1,11 +1,11 @@
-sickchill (2021.02.24) UNRELEASED; urgency=medium
+sickchill (2021.02.24) stable; urgency=medium
 
   * Upstream Update
   * Switch to python3.6+
 
  -- miigotu <miigotu@gmail.com>  Wed, 24 Feb 2021 01:05:16 -0500
 
-sickchill (2020.05.12) UNRELEASED; urgency=medium
+sickchill (2020.05.12) stable; urgency=medium
 
   * Upstream Update
 
