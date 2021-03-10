@@ -21,9 +21,11 @@ set -e
 case "$1" in
     configure)
         chown -R admin:admin /apps/sickchill
-        if [ -d "/apps/sickrage/app-config/" ] && [ ! -f /apps/sickchill/app-config/config.ini ]; then
-            cp -r /apps/sickrage/app-config/* /apps/sickchill/app-config/
-        fi
+        SC_PYTHON=$(command -v python3.9 || command -v python3.8 || command -v python3.7 || command -v python3.6)
+        [ -z $SC_PYTHON ] && (echo "Python 3.6+ not found in your path. After fixing this issue, call 'dpkg-reconfigure sickchill'" && exit 1)
+        echo "Found python3 at $SC_PYTHON, setting service to use this interpreter"
+        echo "If you change python versions or path, call 'dpkg-reconfigure sickchill' to fix the service"
+        sed -i "s#ExecStart=.* /apps/sickchill/SickChill.py#ExecStart=$SC_PYTHON /apps/sickchill/SickChill.py#g" /apps/sickchill/fvapp-sickchill.service
         ;;
     abort-upgrade|abort-remove|abort-deconfigure)
     ;;

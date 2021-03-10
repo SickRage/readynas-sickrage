@@ -1,3 +1,13 @@
+sickchill (2021.03.09) UNRELEASED; urgency=medium
+
+  * Remove python3.6 from dependancies in debain control, to allow local python3.6+ installs to be utilized. Fixes #22
+  * Include .git folder with previoud 10 commits, to allow the updater to work. Fixes #24
+  * Check for python3.6+ versions in system path, and update the service file to the latest found. call 'dpkg-reconfigure sickchill' if it changes to update the service
+  * Fix error in service where ExecStart path was not absolute. Fixes #25
+  * No longer copy config from /apps/sickrage automatically, this could cause a data overwrite if users used the other repo.
+
+ -- miigotu <miigotu@gmail.com>  Tue, 09 Mar 2021 23:21:15 -0500
+
 sickchill (2021.02.24) stable; urgency=medium
 
   * Upstream Update

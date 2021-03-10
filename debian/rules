@@ -8,7 +8,9 @@
 
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-export DH_ALWAYS_EXCLUDE=.git
+
+# We need the .git folder for git based updates.
+#export DH_ALWAYS_EXCLUDE=.git
 
 
 DESTDIR = $(CURDIR)/debian/sickchill
@@ -19,6 +21,6 @@ DESTDIR = $(CURDIR)/debian/sickchill
 override_dh_install:
 	cp -R $(CURDIR)/rn-files/* ${DESTDIR}/apps/sickchill
 	mkdir -p $(CURDIR)/git-files
-	if [ -d ./git-files/sickchill ]; then git --git-dir=./git-files/.git pull; fi
-	if [ ! -d ./git-files/sickchill ]; then git clone https://github.com/sickchill/sickchill.git ./git-files; fi
+	if [ -d ./git-files/sickchill ]; then git --git-dir=./git-files/.git --depth 10 pull; fi
+	if [ ! -d ./git-files/sickchill ]; then git clone --depth 10 https://github.com/sickchill/sickchill.git ./git-files; fi
 	cp -R $(CURDIR)/git-files/* ${DESTDIR}/apps/sickchill

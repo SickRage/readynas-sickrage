@@ -14,7 +14,7 @@ Depends: ${shlibs:Depends},
          ${misc:Depends},
          readynasos (>= 6.1.0),
          php5-sqlite,
-         python3 (>= 3.6),
+         sed,
          git
 Description: Searches torrent and nzb providers for shows.
  Manage your whole workflow and get episodes as soon as they are available.

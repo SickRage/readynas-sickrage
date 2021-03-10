@@ -14,7 +14,7 @@ apt-get install libreadline-gplv2-dev libncursesw5-dev libssl-dev libsqlite3-dev
 
 wget http://python.org/ftp/python/3.6.9\/Python-3.6.9.tar.xz
 tar xf Python-3.6.9.tar.xz
-cd Python-3.6.9
+cd Python-3.6.9 || exit 1
 ./configure --enable-optimizations --with-ensurepip=install
 make -j8
-make altinstall
+make checkinstall altinstall
